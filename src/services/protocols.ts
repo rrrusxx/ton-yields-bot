@@ -1,0 +1,364 @@
+import type { AssetType } from "../types/yields.ts";
+
+/**
+ * Protocol URL mappings
+ * Maps DefiLlama project names to their Telegram Mini Apps or websites
+ */
+export const PROTOCOL_URLS: Record<string, string> = {
+  // Liquid Staking
+  "tonstakers": "https://tonstakers.com/",
+  "bemo": "https://www.bemo.finance/",
+  "hipo": "https://hipo.finance/",
+  
+  // Lending Protocols (TMAs)
+  "evaa": "https://t.me/EvaaAppBot",
+  "evaa-protocol": "https://t.me/EvaaAppBot",
+  "morpho": "https://t.me/MorphoOrgBot",
+  "euler": "https://t.me/EulerFinanceBot",
+  "affluent": "https://t.me/AffluentAppBot",
+  
+  // Yield Protocols
+  "fiva": "https://t.me/fiva_yield_bot",
+  "daolama": "https://daolama.co/",
+  
+  // DEXs
+  "ston-fi": "https://app.ston.fi/pools",
+  "ston.fi": "https://app.ston.fi/pools",
+  "stonfi": "https://app.ston.fi/pools",
+  "dedust": "https://dedust.io/pools",
+  "tonco": "https://tonco.io/",
+  "curve": "https://t.me/CurveAppBot",
+  "curve-dex": "https://t.me/CurveAppBot",
+  "swap-coffee": "https://swap.coffee/earn",
+  "swap.coffee": "https://swap.coffee/earn",
+  "swapcoffee": "https://swap.coffee/earn",
+  
+  // TAC DEXs
+  "carbon": "https://t.me/CarbonDefiAppBot",
+  "carbon-defi": "https://t.me/CarbonDefiAppBot",
+  "carbondefi": "https://t.me/CarbonDefiAppBot",
+  "bancor": "https://t.me/CarbonDefiAppBot",
+  "snap": "https://www.snap.club/",
+  "snap-dex": "https://www.snap.club/",
+  "snapdex": "https://www.snap.club/",
+  
+  // Perpetuals/Trading
+  "storm-trade": "https://t.me/StormTradeBot",
+};
+
+/**
+ * Default URL - empty string means we skip showing DefiLlama links
+ * Protocols without proper URLs won't have clickable links
+ */
+const DEFAULT_URL = "";
+
+/**
+ * Get the URL for a protocol
+ */
+export function getProtocolUrl(project: string, _poolUrl?: string | null): string {
+  // Try exact match first
+  const normalizedProject = project.toLowerCase().replace(/[\s_]/g, "-");
+  if (PROTOCOL_URLS[normalizedProject]) {
+    return PROTOCOL_URLS[normalizedProject];
+  }
+  
+  // Try without dashes
+  const noDashes = normalizedProject.replace(/-/g, "");
+  if (PROTOCOL_URLS[noDashes]) {
+    return PROTOCOL_URLS[noDashes];
+  }
+  
+  // Try original lowercase
+  const original = project.toLowerCase();
+  if (PROTOCOL_URLS[original]) {
+    return PROTOCOL_URLS[original];
+  }
+  
+  return DEFAULT_URL;
+}
+
+/**
+ * Excluded assets - memecoins and other assets we don't want to show
+ */
+const EXCLUDED_ASSETS = [
+  "NOT",      // Notcoin - memecoin
+  "DOGS",     // Dogs - memecoin
+  "HMSTR",    // Hamster - memecoin
+  "CATI",     // Catizen - memecoin
+  "REDO",     // Memecoin
+  "JETTON",   // Generic/spam
+  "PUNK",     // Memecoin
+  "ANON",     // Memecoin
+];
+
+/**
+ * Check if an asset should be excluded
+ */
+export function isExcludedAsset(symbol: string): boolean {
+  const upperSymbol = symbol.toUpperCase();
+  return EXCLUDED_ASSETS.some(excluded => 
+    upperSymbol === excluded || 
+    upperSymbol.startsWith(excluded + "-") ||
+    upperSymbol.endsWith("-" + excluded) ||
+    upperSymbol.includes("-" + excluded + "-")
+  );
+}
+
+/**
+ * Stablecoin asset identifiers
+ * Includes native TON stables and TAC-bridged assets
+ */
+const STABLE_ASSETS = [
+  // Native/Common
+  "USDT",
+  "USD₮",
+  "USDC",
+  "DAI",
+  // Ethena
+  "USDE",
+  "SUSDE",
+  "TSUSDE",
+  // Resolv
+  "USR",
+  "RLP",
+  "WSTUSR",
+  "STUSR",
+  // Usual
+  "USD0",
+  "USD0++",
+  // USN
+  "USN",
+  "SUSN",
+  // Other stables
+  "TUSD",
+  "BUSD",
+  "FRAX",
+  "LUSD",
+];
+
+/**
+ * Bitcoin asset identifiers
+ */
+const BTC_ASSETS = [
+  "cbBTC",
+  "WBTC",
+  "tBTC",
+  "BTC",
+  "LBTC",
+  "M-BTC",
+  "MBTC",
+];
+
+/**
+ * TON and related assets (LSTs, etc.)
+ */
+const TON_ASSETS = [
+  "TON",
+  "TSTON",
+  "STTON",
+  "HTON",
+  "BMTON",
+  "WTON",
+];
+
+/**
+ * Correlated pairs - assets that move together (no impermanent loss risk)
+ */
+const CORRELATED_PAIRS: Record<AssetType, string[][]> = {
+  // TON and LSTs are correlated
+  TON: [
+    ["TON", "TSTON"],
+    ["TON", "STTON"],
+    ["TON", "HTON"],
+    ["TON", "BMTON"],
+    ["TSTON", "STTON"],
+    ["TSTON", "HTON"],
+    ["STTON", "HTON"],
+    ["STTON", "BMTON"],
+  ],
+  // Stablecoins are correlated with each other
+  STABLE: [
+    ["USDT", "USDC"],
+    ["USDT", "USDE"],
+    ["USDT", "USN"],
+    ["USDT", "USD0"],
+    ["USDT", "USR"],
+    ["USDT", "DAI"],
+    ["USDC", "USDE"],
+    ["USDC", "USN"],
+    ["USDC", "USD0"],
+    ["USDC", "USR"],
+    ["USDE", "USN"],
+    ["USDE", "USD0"],
+    ["USDE", "USR"],
+    ["USDE", "SUSDE"],
+    ["USN", "USD0"],
+    ["USN", "USR"],
+    ["USD0", "USR"],
+    ["USR", "WSTUSR"],
+    ["USR", "RLP"],
+  ],
+  // BTC variants are correlated
+  BTC: [
+    ["BTC", "WBTC"],
+    ["BTC", "cbBTC"],
+    ["BTC", "LBTC"],
+    ["cbBTC", "LBTC"],
+    ["cbBTC", "WBTC"],
+    ["LBTC", "WBTC"],
+    ["cbBTC", "MBTC"],
+  ],
+};
+
+/**
+ * Classify an asset symbol into asset type category
+ */
+export function classifyAsset(symbol: string): AssetType {
+  const upperSymbol = symbol.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  
+  // Check for stablecoins first (more specific)
+  if (STABLE_ASSETS.some(stable => upperSymbol.includes(stable.replace(/[^A-Z0-9]/g, "")))) {
+    return "STABLE";
+  }
+  
+  // Check for BTC assets
+  if (BTC_ASSETS.some(btc => upperSymbol.includes(btc.replace(/[^A-Z0-9]/g, "")))) {
+    return "BTC";
+  }
+  
+  // Default to TON category
+  return "TON";
+}
+
+/**
+ * Check if a symbol represents a single asset (not a pair/LP)
+ */
+export function isSingleAsset(symbol: string): boolean {
+  // LP tokens usually have "-" or "/" in the name
+  return !symbol.includes("-") && !symbol.includes("/");
+}
+
+/**
+ * Parse LP pair symbol into two assets
+ * e.g., "TON-USDT" -> ["TON", "USDT"]
+ */
+export function parseLpPair(symbol: string): [string, string] | null {
+  const parts = symbol.split(/[-\/]/);
+  if (parts.length === 2) {
+    return [parts[0].toUpperCase(), parts[1].toUpperCase()];
+  }
+  return null;
+}
+
+/**
+ * Check if an LP pair consists of correlated assets
+ */
+export function isCorrelatedPair(symbol: string, assetType: AssetType): boolean {
+  // Single assets are always "correlated" (no IL risk)
+  if (isSingleAsset(symbol)) {
+    return true;
+  }
+  
+  const pair = parseLpPair(symbol);
+  if (!pair) {
+    return false;
+  }
+  
+  const [asset1, asset2] = pair;
+  const correlatedPairs = CORRELATED_PAIRS[assetType];
+  
+  // Check if this pair exists in correlated pairs (order doesn't matter)
+  return correlatedPairs.some(([a, b]) => 
+    (asset1.includes(a) && asset2.includes(b)) ||
+    (asset1.includes(b) && asset2.includes(a))
+  );
+}
+
+/**
+ * Check if an LP pair belongs to a specific asset category
+ */
+export function pairBelongsToCategory(symbol: string, assetType: AssetType): boolean {
+  // Single assets - check directly
+  if (isSingleAsset(symbol)) {
+    return classifyAsset(symbol) === assetType;
+  }
+  
+  const pair = parseLpPair(symbol);
+  if (!pair) {
+    return false;
+  }
+  
+  const [asset1, asset2] = pair;
+  
+  // For TON category: both assets should be TON-related
+  if (assetType === "TON") {
+    const isTon1 = TON_ASSETS.some(t => asset1.includes(t));
+    const isTon2 = TON_ASSETS.some(t => asset2.includes(t));
+    return isTon1 && isTon2;
+  }
+  
+  // For STABLE category: both assets should be stablecoins
+  if (assetType === "STABLE") {
+    const isStable1 = STABLE_ASSETS.some(s => asset1.includes(s.replace(/[^A-Z0-9]/g, "")));
+    const isStable2 = STABLE_ASSETS.some(s => asset2.includes(s.replace(/[^A-Z0-9]/g, "")));
+    return isStable1 && isStable2;
+  }
+  
+  // For BTC category: both assets should be BTC-related
+  if (assetType === "BTC") {
+    const isBtc1 = BTC_ASSETS.some(b => asset1.includes(b));
+    const isBtc2 = BTC_ASSETS.some(b => asset2.includes(b));
+    return isBtc1 && isBtc2;
+  }
+  
+  return false;
+}
+
+/**
+ * Format protocol name for display
+ */
+export function formatProtocolName(project: string): string {
+  const specialNames: Record<string, string> = {
+    "ston-fi": "Ston.fi",
+    "ston.fi": "Ston.fi",
+    "stonfi": "Ston.fi",
+    "dedust": "DeDust",
+    "evaa": "EVAA",
+    "evaa-protocol": "EVAA",
+    "tonstakers": "Tonstakers",
+    "tonco": "Tonco",
+    "megaton-finance": "Megaton",
+    "bemo": "Bemo",
+    "hipo": "Hipo",
+    "storm-trade": "Storm Trade",
+    "morpho": "Morpho",
+    "euler": "Euler",
+    "affluent": "Affluent",
+    "curve": "Curve",
+    "curve-dex": "Curve",
+    "fiva": "FIVA",
+    "daolama": "Daolama",
+    "swap-coffee": "Swap.coffee",
+    "swap.coffee": "Swap.coffee",
+    "swapcoffee": "Swap.coffee",
+    // TAC dApps
+    "carbon": "Carbon",
+    "carbon-defi": "Carbon",
+    "carbondefi": "Carbon",
+    "bancor": "Bancor",
+    "snap": "Snap",
+    "snap-dex": "Snap",
+    "snapdex": "Snap",
+  };
+  
+  const normalized = project.toLowerCase();
+  if (specialNames[normalized]) {
+    return specialNames[normalized];
+  }
+  
+  // Default: capitalize first letter of each word
+  return project
+    .split(/[-_]/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}

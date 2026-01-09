@@ -1,0 +1,20 @@
+{
+  "name": "ton-yields-bot",
+  "version": "1.0.0",
+  "tasks": {
+    "dev": "deno run --unstable-cron --allow-net --allow-env --allow-read --watch src/main.ts",
+    "start": "deno run --unstable-cron --allow-net --allow-env --allow-read src/main.ts",
+    "post": "deno run --allow-net --allow-env --allow-read src/main.ts --post-now",
+    "test-msg": "Ston.fideno run --allow-net --allow-env --allow-read src/main.ts --test",
+    "test": "deno test --allow-net --allow-env --allow-read"
+  },
+  "imports": {
+    "grammy": "https://deno.land/x/grammy@v1.21.1/mod.ts",
+    "grammy/types": "https://deno.land/x/grammy@v1.21.1/types.ts",
+    "std/": "https://deno.land/std@0.208.0/"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true
+  }
+}
