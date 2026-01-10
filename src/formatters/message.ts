@@ -309,7 +309,7 @@ export function formatChannelMessage(yields: GroupedYields): string {
   sections.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   sections.push("");
   sections.push("<i>Legend: APY (+reward) | TVL</i>");
-  sections.push(`<i>Data via DefiLlama | Updated ${getCurrentTimeUTC()}</i>`);
+  sections.push(`<i>Data: <a href="https://defillama.com/">DefiLlama</a> | <a href="https://merkl.xyz/">Merkl</a> | <a href="https://goldsky.com/">Goldsky</a> • ${getCurrentTimeUTC()}</i>`);
   
   return sections.join("\n");
 }

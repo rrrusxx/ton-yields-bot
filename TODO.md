@@ -2,18 +2,27 @@
 
 > For detailed roadmap, see [ROADMAP.md](ROADMAP.md)
 
+## ✅ Recently Completed
+
+- [x] Morpho Goldsky integration
+- [x] Test token filtering (BMW, LADA)
+- [x] GraphQL query implementation for Morpho
+- [x] Enhanced market filtering
+
 ## 🔥 Immediate (This Week)
 
-- [ ] Push code to GitHub
+- [ ] Research Curve data source (TAC)
+- [ ] Research Euler expansion (beyond Merkl)
+- [ ] Push Morpho integration to GitHub
 - [ ] Deploy to Deno Deploy
 - [ ] Verify daily posts work automatically
-- [ ] Monitor for any errors
 
 ## 🎯 Next Sprint
 
+- [ ] Complete Curve integration
+- [ ] Complete Euler integration (full coverage)
 - [ ] Add 7-day average APYs
 - [ ] Show APY delta vs yesterday
-- [ ] Add more TAC protocols (ZeroLend, etc.)
 - [ ] Create logo for the channel
 
 ## 💭 Ideas to Explore

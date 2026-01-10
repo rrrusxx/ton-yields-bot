@@ -238,21 +238,28 @@ async function fetchDefiLlamaYields(): Promise<GroupedYields> {
 }
 
 /**
- * Fetch and process all TON yields from both DefiLlama and Merkl
+ * Fetch and process all TON yields from DefiLlama, Merkl, and Morpho
  * Returns yields grouped by asset type
  */
 export async function fetchTonYields(): Promise<GroupedYields> {
-  // Import Merkl service dynamically to avoid circular dependencies
+  // Import services dynamically to avoid circular dependencies
   const { fetchMerklYields } = await import("./merkl.ts");
+  const { fetchMorphoYields } = await import("./morpho.ts");
   
-  // Fetch from both sources in parallel
-  const [defiLlamaYields, merklYields] = await Promise.all([
+  // Fetch from all sources in parallel
+  const [defiLlamaYields, merklYields, morphoYields] = await Promise.all([
     fetchDefiLlamaYields(),
     fetchMerklYields(),
+    fetchMorphoYields(),
   ]);
   
   // Merge Merkl yields into the grouped structure
   for (const yield_ of merklYields) {
+    defiLlamaYields[yield_.assetType].push(yield_);
+  }
+  
+  // Merge Morpho yields into the grouped structure
+  for (const yield_ of morphoYields) {
     defiLlamaYields[yield_.assetType].push(yield_);
   }
   

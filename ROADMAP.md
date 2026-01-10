@@ -20,13 +20,15 @@ Telegram bot that aggregates yield opportunities from TON blockchain and TAC (Th
 ### Data Sources
 - [x] DefiLlama API integration (TON native protocols)
 - [x] Merkl API integration (TAC dApps - Chain ID 239)
+- [x] Morpho Goldsky subgraph integration (TAC lending markets)
 - [x] Asset classification (TON, Stablecoins, BTC)
 - [x] Correlated pairs filtering (no IL risk)
 - [x] Protocol URL mappings (TMAs and websites)
 
 ### Protocols Integrated
 - [x] TON Native: Storm Trade, EVAA, Affluent, Hipo, Ston.fi, DeDust, Tonstakers, etc.
-- [x] TAC dApps: Curve, Morpho, Euler, Carbon, Snap
+- [x] TAC dApps (via Merkl): Carbon, Snap, Euler
+- [x] TAC dApps (via Goldsky): Morpho lending markets
 
 ### Message Formatting
 - [x] Group yields by asset type

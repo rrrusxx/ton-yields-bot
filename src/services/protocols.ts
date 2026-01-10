@@ -105,6 +105,47 @@ export function isExcludedAsset(symbol: string): boolean {
 }
 
 /**
+ * ETH and related assets - NOT included in TON yields
+ * These are TAC-bridged Ethereum assets we want to exclude
+ */
+const ETH_ASSETS = [
+  "ETH",
+  "WETH",
+  // Lido
+  "stETH",
+  "wstETH",
+  "STETH",
+  "WSTETH",
+  // Rocket Pool
+  "rETH",
+  "RETH",
+  // Kelp
+  "rsETH",
+  "wrsETH",
+  "RSETH",
+  "WRSETH",
+  // Puffer
+  "pufETH",
+  "PUFETH",
+  // EtherFi
+  "eETH",
+  "weETH",
+  "EETH",
+  "WEETH",
+];
+
+/**
+ * Check if an asset is an ETH asset (should be excluded from our feeds)
+ */
+export function isEthAsset(symbol: string): boolean {
+  const upperSymbol = symbol.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return ETH_ASSETS.some(eth => 
+    upperSymbol === eth.replace(/[^A-Z0-9]/g, "") || 
+    upperSymbol.startsWith(eth.replace(/[^A-Z0-9]/g, ""))
+  );
+}
+
+/**
  * Stablecoin asset identifiers
  * Includes native TON stables and TAC-bridged assets
  */

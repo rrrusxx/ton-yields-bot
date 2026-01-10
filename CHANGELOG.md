@@ -57,12 +57,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TODO.md for quick tasks
 - This CHANGELOG.md
 
+## [1.1.0] - 2026-01-10
+
+### Added
+- **Morpho Integration**
+  - Morpho Goldsky subgraph integration for TAC chain lending markets
+  - GraphQL query support for Morpho Blue markets
+  - Supply APY (LENDER rates) extraction
+  - Test token filtering (BMW, LADA, etc.)
+  - Minimum token balance threshold for active markets
+
+- **Technical Improvements**
+  - `--allow-import` flag added to all deno tasks
+  - Cleaned up test scripts after Morpho research
+  - Enhanced market filtering (min 10 tokens, min 0.1% APY)
+
+### Changed
+- Updated data sources to include three APIs: DefiLlama, Merkl, and Morpho Goldsky
+- Improved protocol URL mappings for TAC dApps
+- Enhanced asset classification for TAC-bridged assets
+
+### Fixed
+- Corrected corrupted deno.json task definition for `test-msg`
+- Added missing `--unstable-cron` flag to `post` task
+
 ## [Unreleased]
 
 ### Planned
 - Historical APY tracking (7-day averages)
 - APY delta vs yesterday
-- Additional TAC protocols (ZeroLend, IPOR, Market.win)
+- Additional TAC protocols: Curve (full integration), Euler (expansion beyond Merkl)
 - Alert system for APY changes
 - Web dashboard with Fresh
 
