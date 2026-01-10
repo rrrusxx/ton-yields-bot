@@ -2,7 +2,7 @@
 
 ## Overview
 
-This bot now integrates with [Merkl](https://app.merkl.xyz/?chain=239) to fetch additional yield opportunities from TAC (The Application Chain) - Chain ID 239.
+This bot now integrates with [Merkl](https://app.merkl.xyz/?chain=239) to fetch additional yield opportunities from TAC - Chain ID 239.
 
 ## Data Sources
 
