@@ -1,12 +1,14 @@
 # TON Yields Bot
 
-A Telegram bot that aggregates and publishes daily yield/APY data from TON blockchain protocols and their Telegram Mini Apps.
+A Telegram bot that aggregates and publishes daily yield/APY data from almost all TON blockchain protocols (Including TAC _(TON network extension)_ dApps) and their Telegram Mini Apps.
 
 ## Features
 
 - Fetches yield data from DefiLlama API
 - Fetches yield data from Merkl API (For TAC dApps)
-- Groups opportunities by asset type (TON, Stablecoins, BTC)
+- Fetches yield data from Goldsky API
+- Fetches yield data from TON and TAC onchain contracts
+- Groups opportunities by asset type (TON, Stablecoins, BTC and more major assets)
 - Shows APY (base + rewards), TVL, and direct links
 - Posts daily updates to a Telegram channel
 
