@@ -11,7 +11,8 @@
   "imports": {
     "grammy": "https://deno.land/x/grammy@v1.21.1/mod.ts",
     "grammy/types": "https://deno.land/x/grammy@v1.21.1/types.ts",
-    "std/": "https://deno.land/std@0.208.0/"
+    "std/": "https://deno.land/std@0.208.0/",
+    "ethers": "npm:ethers@^6.13.0"
   },
   "compilerOptions": {
     "strict": true,

@@ -57,6 +57,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TODO.md for quick tasks
 - This CHANGELOG.md
 
+## [1.2.0] - 2026-01-12
+
+### Added
+- **Euler Integration**
+  - Direct smart contract integration using ethers.js
+  - Fetches vault data from Euler contracts on TAC chain via RPC
+  - Reads supply APY directly from `interestRateInfo.supplyAPY` (25 decimals precision)
+  - Batch processing of verified vaults (5 vaults per batch)
+  - Support for Euler Perspective and VaultLens contracts
+  - Real-time on-chain data (no indexer delays)
+
+- **Technical Improvements**
+  - Added ethers.js v6 to dependencies (npm:ethers@^6.13.0)
+  - TAC RPC endpoint integration (https://rpc.ankr.com/tac)
+  - Enhanced vault data transformation with fallback structure handling
+  - BigInt to APY conversion utilities
+
+### Changed
+- Updated data sources to include four sources: DefiLlama, Merkl, Morpho Goldsky, and Euler Contracts
+- Improved error handling for contract calls
+- Enhanced batch processing with retry logic
+
+### Documentation
+- Created EULER_INTEGRATION.md with technical details
+- Updated TODO.md to mark Euler as completed
+- Updated ROADMAP.md with Euler integration status
+
 ## [1.1.0] - 2026-01-10
 
 ### Added
@@ -86,8 +113,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - Historical APY tracking (7-day averages)
 - APY delta vs yesterday
-- Additional TAC protocols: Curve (full integration), Euler (expansion beyond Merkl)
+- TON wallet yields (Telegram Wallet, MyTonWallet, Tonkeeper)
+- Carbon DeFi DEX exploration
 - Alert system for APY changes
+- ETH and TAC asset clusters
 - Web dashboard with Fresh
 
 ---

@@ -27,8 +27,9 @@ Telegram bot that aggregates yield opportunities from TON blockchain and TAC (Th
 
 ### Protocols Integrated
 - [x] TON Native: Storm Trade, EVAA, Affluent, Hipo, Ston.fi, DeDust, Tonstakers, etc.
-- [x] TAC dApps (via Merkl): Carbon, Snap, Euler
+- [x] TAC dApps (via Merkl): Carbon, Snap, Curve
 - [x] TAC dApps (via Goldsky): Morpho lending markets
+- [x] TAC dApps (via contracts): Euler lending vaults
 
 ### Message Formatting
 - [x] Group yields by asset type
@@ -65,8 +66,14 @@ Telegram bot that aggregates yield opportunities from TON blockchain and TAC (Th
 
 ## 🚧 In Progress (v1.1)
 
+### Euler Integration ✅
+- [x] Euler contract integration via ethers.js
+- [x] Direct on-chain data fetching
+- [x] Supply APY calculation from contracts
+- [ ] Test Euler yields in production
+
 ### GitHub & Deployment
-- [ ] Push code to GitHub repository
+- [ ] Push code to GitHub repository (including Euler)
 - [ ] Deploy to Deno Deploy
 - [ ] Set up environment variables in Deno Deploy
 - [ ] Test automated daily posts
