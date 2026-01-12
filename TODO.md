@@ -8,6 +8,11 @@
 - [x] Euler contract integration via ethers.js
 - [x] Test Euler integration (3 yields: TON, USDT, cbBTC)
 - [x] Push Euler integration to GitHub (commit 98fe4ae)
+- [x] Deploy Euler update to Deno Deploy (production running)
+- [x] Set up test/production environment separation:
+  - [x] Test bot + test channel for development
+  - [x] Production bot + production channel on Deno Deploy
+  - [x] Environment variables configured
 - [x] Curve integration confirmed (uses Merkl API)
 - [x] Carbon DeFi DEX verified (already covered by Merkl, no additional yields)
 - [x] Test token filtering (BMW, LADA, unknown)
@@ -15,9 +20,7 @@
 
 ## 🔥 Immediate (This Week)
 
-- [ ] Deploy Euler update to Deno Deploy
-- [ ] Add Tonstakers yields (TON liquid staking)
-- [ ] Add Bemo yields (TON liquid staking)
+- [ ] Verify daily posts work automatically (check at 9:00 UTC)
 - [ ] Start fetching TON wallet yields:
   - [ ] Telegram Wallet (@wallet)
   - [ ] MyTonWallet (MTW)
@@ -45,10 +48,21 @@
 ## ⏸️ On Hold
 
 - [ ] Swap Coffee API integration (waiting for API key access)
+- [ ] Tonstakers yields (no public API - needs team contact)
+- [ ] Bemo yields (no public API - needs team contact)
 
 ## 📝 Quick Notes
 
-<!-- Add quick notes here -->
+**Latest Deployment:** Jan 13, 2026
+- Production: Deno Deploy (auto-deploy from GitHub main branch)
+- Cron: Daily at 9:00 UTC
+- Channel: @ton_yields_daily
+- Status: ✅ Running
+
+**Development Setup:**
+- Test bot posts to @ton_yields_test (private test channel)
+- Use `deno task post` for local testing
+- Production and test environments fully separated
 
 ---
 
