@@ -4,36 +4,47 @@
 
 ## ✅ Recently Completed
 
-- [x] Morpho Goldsky integration
-- [x] Test token filtering (BMW, LADA)
-- [x] GraphQL query implementation for Morpho
-- [x] Enhanced market filtering
+- [x] Morpho Goldsky integration (direct markets only)
 - [x] Euler contract integration via ethers.js
-- [x] Direct on-chain data fetching for Euler vaults
+- [x] Test Euler integration (3 yields: TON, USDT, cbBTC)
+- [x] Push Euler integration to GitHub (commit 98fe4ae)
+- [x] Curve integration confirmed (uses Merkl API)
+- [x] Carbon DeFi DEX verified (already covered by Merkl, no additional yields)
+- [x] Test token filtering (BMW, LADA, unknown)
+- [x] ETH asset filtering (wrsETH, pufETH, wstETH)
 
 ## 🔥 Immediate (This Week)
 
-- [ ] Test Euler integration
-- [ ] Push Euler integration to GitHub
-- [ ] Deploy to Deno Deploy
-- [ ] Verify daily posts work automatically
-- [ ] Explore Carbon DeFi DEX yields
+- [ ] Deploy Euler update to Deno Deploy
+- [ ] Add Tonstakers yields (TON liquid staking)
+- [ ] Add Bemo yields (TON liquid staking)
+- [ ] Start fetching TON wallet yields:
+  - [ ] Telegram Wallet (@wallet)
+  - [ ] MyTonWallet (MTW)
+  - [ ] Tonkeeper
+- [ ] Continue Morpho alignment discussions with team
 
-## 🎯 Next Sprint
+## 🎯 Next Sprint (Current)
 
-- [x] Complete Curve integration (uses Merkl API)
-- [x] Complete Euler integration (full coverage)
-- [ ] Start fetching TON wallet yields (Telegram Wallet, MyTonWallet, Tonkeeper)
 - [ ] Create database with historical yields
 - [ ] Add 7-day average APYs
 - [ ] Show APY delta vs yesterday
-- [ ] Add ETH and TAC asset clusters (next week)
+- [ ] Research additional yield sources
+
+## 📅 Next Week
+
+- [ ] Add ETH and TAC asset clusters
+- [ ] Expand asset classification beyond TON/STABLE/BTC
 
 ## 💭 Ideas to Explore
 
 - [ ] Web dashboard with Fresh
-- [ ] User alerts system
-- [ ] Wallet integration
+- [ ] User alerts system (APY changes, new opportunities)
+- [ ] Wallet integration (track user positions)
+
+## ⏸️ On Hold
+
+- [ ] Swap Coffee API integration (waiting for API key access)
 
 ## 📝 Quick Notes
 
