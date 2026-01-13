@@ -21,9 +21,8 @@
 
 ## 🔥 Immediate (This Week)
 
-- [ ] Test YieldFi integration locally and deploy to production
-- [ ] Get YieldFi contract addresses from team (for live TVL data)
-- [ ] Verify daily posts work automatically (check at 9:00 UTC)
+- [x] Test YieldFi integration locally and deploy to production (commit a200541)
+- [ ] Verify YieldFi appears in tomorrow's 9:00 UTC post
 - [ ] Start fetching TON wallet yields:
   - [ ] Telegram Wallet (@wallet) - custodial and self-custodial
   - [ ] MyTonWallet (MTW)
@@ -56,11 +55,12 @@
 
 ## 📝 Quick Notes
 
-**Latest Deployment:** Jan 13, 2026
+**Latest Deployment:** Jan 13, 2026 (commit a200541)
 - Production: Deno Deploy (auto-deploy from GitHub main branch)
 - Cron: Daily at 9:00 UTC
 - Channel: @ton_yields_daily
 - Status: ✅ Running
+- Latest: Added YieldFi (yUSD $31.7M, vyUSD $4.5M)
 
 **Development Setup:**
 - Test bot posts to @ton_yields_test (private test channel)
