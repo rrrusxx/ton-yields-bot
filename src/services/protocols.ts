@@ -20,6 +20,9 @@ export const PROTOCOL_URLS: Record<string, string> = {
   // Yield Protocols
   "fiva": "https://t.me/fiva_yield_bot",
   "daolama": "https://daolama.co/",
+  "yieldfi": "https://t.me/yieldfi_bot",
+  "yield-fi": "https://t.me/yieldfi_bot",
+  "yield.fi": "https://t.me/yieldfi_bot",
   
   // DEXs
   "ston-fi": "https://app.ston.fi/pools",

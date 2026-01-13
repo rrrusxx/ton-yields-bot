@@ -246,13 +246,15 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   const { fetchMerklYields } = await import("./merkl.ts");
   const { fetchMorphoYields } = await import("./morpho.ts");
   const { fetchEulerYields } = await import("./euler.ts");
+  const { fetchYieldFiYields } = await import("./yieldfi.ts");
   
   // Fetch from all sources in parallel
-  const [defiLlamaYields, merklYields, morphoYields, eulerYields] = await Promise.all([
+  const [defiLlamaYields, merklYields, morphoYields, eulerYields, yieldFiYields] = await Promise.all([
     fetchDefiLlamaYields(),
     fetchMerklYields(),
     fetchMorphoYields(),
     fetchEulerYields(),
+    fetchYieldFiYields(),
   ]);
   
   // Merge Merkl yields into the grouped structure
@@ -267,6 +269,11 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   
   // Merge Euler yields into the grouped structure
   for (const yield_ of eulerYields) {
+    defiLlamaYields[yield_.assetType].push(yield_);
+  }
+  
+  // Merge YieldFi yields into the grouped structure
+  for (const yield_ of yieldFiYields) {
     defiLlamaYields[yield_.assetType].push(yield_);
   }
   

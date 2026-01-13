@@ -30,6 +30,7 @@ Telegram bot that aggregates yield opportunities from TON blockchain and TAC (Th
 - [x] TAC dApps (via Merkl): Carbon, Snap, Curve
 - [x] TAC dApps (via Goldsky): Morpho lending markets
 - [x] TAC dApps (via contracts): Euler lending vaults
+- [x] TAC dApps (via fallback): YieldFi (yUSD, vyUSD vaults)
 
 ### Message Formatting
 - [x] Group yields by asset type

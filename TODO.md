@@ -9,6 +9,7 @@
 - [x] Test Euler integration (3 yields: TON, USDT, cbBTC)
 - [x] Push Euler integration to GitHub (commit 98fe4ae)
 - [x] Deploy Euler update to Deno Deploy (production running)
+- [x] YieldFi integration (yUSD, vyUSD) with fallback APY data
 - [x] Set up test/production environment separation:
   - [x] Test bot + test channel for development
   - [x] Production bot + production channel on Deno Deploy
@@ -20,9 +21,11 @@
 
 ## 🔥 Immediate (This Week)
 
+- [ ] Test YieldFi integration locally and deploy to production
+- [ ] Get YieldFi contract addresses from team (for live TVL data)
 - [ ] Verify daily posts work automatically (check at 9:00 UTC)
 - [ ] Start fetching TON wallet yields:
-  - [ ] Telegram Wallet (@wallet)
+  - [ ] Telegram Wallet (@wallet) - custodial and self-custodial
   - [ ] MyTonWallet (MTW)
   - [ ] Tonkeeper
 - [ ] Continue Morpho alignment discussions with team
