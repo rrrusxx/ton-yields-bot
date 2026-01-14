@@ -22,7 +22,15 @@
 ## 🔥 Immediate (This Week)
 
 - [x] Test YieldFi integration locally and deploy to production (commit a200541)
-- [ ] Verify YieldFi appears in tomorrow's 9:00 UTC post
+- [x] Verify YieldFi appears in 9:00 UTC post (✅ 40 subscribers!)
+- [ ] **NEW Badge Feature** 🆕 (Priority: TODAY)
+  - [ ] Add emoji indicator for new yield opportunities
+  - [ ] Requires historical data tracking/comparison
+  - [ ] Show which pools are newly added since last post
+- [ ] **Add KTON.io Protocol** (Priority: HIGH)
+  - [ ] Liquid staking token (LST) on TON
+  - [ ] Check DefiLlama for KTON yields
+  - [ ] Similar integration to tsTON, hTON, stTON
 - [ ] Start fetching TON wallet yields:
   - [ ] Telegram Wallet (@wallet) - custodial and self-custodial
   - [ ] MyTonWallet (MTW)
@@ -31,6 +39,11 @@
 
 ## 🎯 Next Sprint (Current)
 
+- [ ] **Tradoor Protocol Integration**
+  - [ ] Research: What is Tradoor? (DeFi protocol on TON)
+  - [ ] Identify data sources (DefiLlama, API, contracts)
+  - [ ] Determine yield types and integration approach
+  - [ ] Priority: Medium (needs research first)
 - [ ] Create database with historical yields
 - [ ] Add 7-day average APYs
 - [ ] Show APY delta vs yesterday
@@ -43,6 +56,14 @@
 
 ## 💭 Ideas to Explore
 
+- [ ] **Points Tracking Feature** ⭐
+  - [ ] Add emoji indicator for protocols that generate points (airdrops)
+  - [ ] Challenge: Most protocols don't expose points data via API
+  - [ ] Options:
+    - Manual configuration (hardcode known points programs)
+    - Scraping (not ideal, fragile)
+    - Wait for protocols to add points APIs
+  - [ ] Priority: Low (technically difficult, data availability issue)
 - [ ] Web dashboard with Fresh
 - [ ] User alerts system (APY changes, new opportunities)
 - [ ] Wallet integration (track user positions)
