@@ -4,43 +4,49 @@
 
 ## ✅ Recently Completed
 
+- [x] **Swap Coffee API Integration** (commit 310e817) - MAJOR UPDATE! 🎉
+  - [x] Integrated 100+ pools from 17+ TON-native protocols
+  - [x] Storm Trade: TON (7.1%, $6.7M), USDT (10.1%, $5.9M)
+  - [x] KTON.io: TON (KTON): 4.1% | $2.2M (matches ~3.7% website APY)
+  - [x] Stakee: TON (STAKED): 3.3% | $15.9M
+  - [x] Tonstakers, Bemo, Hipo now showing from Swap Coffee
+  - [x] Ston.fi, DeDust, Daolama, Colossus all integrated
+  - [x] Fixed LST token format detection (TON-SLP, TON-KTON, TON-STAKED)
+  - [x] Memecoin filtering (NOT/Notcoin correctly excluded)
+  - [x] Maintained strict correlation filter (no IL risk)
+- [x] **EVAA USDE Visibility Fixed** (commit 310e817)
+  - [x] Increased pool display limit from 5 to 10 per protocol
+  - [x] Now showing USDE: 1.5% ($26K) and 3.6% ($12K)
+  - [x] EVAA exclusively from DefiLlama (16 pools, complete coverage)
+- [x] **Footer/Data Sources Updated** (commit 310e817)
+  - [x] Removed "YieldFi" (sourced from DefiLlama)
+  - [x] Added Swap.coffee with hyperlink
+  - [x] Re-added Daolama hyperlink
 - [x] Morpho Goldsky integration (direct markets only)
 - [x] Euler contract integration via ethers.js
-- [x] Test Euler integration (3 yields: TON, USDT, cbBTC)
-- [x] Push Euler integration to GitHub (commit 98fe4ae)
-- [x] Deploy Euler update to Deno Deploy (production running)
-- [x] YieldFi integration (yUSD, vyUSD) with fallback APY data
-- [x] Set up test/production environment separation:
-  - [x] Test bot + test channel for development
-  - [x] Production bot + production channel on Deno Deploy
-  - [x] Environment variables configured
+- [x] YieldFi integration (yUSD, vyUSD) with TVL aggregation across chains
+- [x] Set up test/production environment separation
 - [x] Curve integration confirmed (uses Merkl API)
-- [x] Carbon DeFi DEX verified (already covered by Merkl, no additional yields)
-- [x] Test token filtering (BMW, LADA, unknown)
+- [x] Carbon DeFi DEX verified (already covered by Merkl)
 - [x] ETH asset filtering (wrsETH, pufETH, wstETH)
 
 ## 🔥 Immediate (This Week)
 
-- [x] Test YieldFi integration locally and deploy to production (commit a200541)
-- [x] Verify YieldFi appears in 9:00 UTC post (✅ 40 subscribers!)
-- [x] Fix Morpho APY calculation (commit c06b559) - APYs now accurate! ✅
-- [ ] **Fix Morpho TVL Calculation** 🔴 (Priority: TOMORROW)
+- [ ] **Fix Morpho TVL Calculation** 🔴 (Priority: HIGH)
   - [ ] Get clarification from Morpho team on correct field for Total Deposits
-  - [ ] Test with markets[].market.totalSupply approach
-  - [ ] Verify TVL matches Mini App values (currently inconsistent)
-  - Note: APYs are accurate, only TVL needs refinement
+  - [ ] Current issue: `lastTotalAssets` inconsistent for some vaults
+  - [ ] Verify TVL matches Mini App values
+  - Note: APYs are accurate (3.4%, 0.4%), only TVL needs refinement
 - [ ] **NEW Badge Feature** 🆕
   - [ ] Add emoji indicator for new yield opportunities
   - [ ] Requires historical data tracking/comparison
   - [ ] Show which pools are newly added since last post
-- [ ] **Add KTON.io Protocol** (Priority: HIGH)
-  - [ ] Liquid staking token (LST) on TON
-  - [ ] Check DefiLlama for KTON yields
-  - [ ] Similar integration to tsTON, hTON, stTON
+  - Priority: MEDIUM (you mentioned wanting to work on this)
 - [ ] Start fetching TON wallet yields:
   - [ ] Telegram Wallet (@wallet) - custodial and self-custodial
   - [ ] MyTonWallet (MTW)
   - [ ] Tonkeeper
+  - Priority: MEDIUM (this week if time permits)
 
 ## 🎯 Next Sprint (Current)
 
@@ -75,19 +81,23 @@
 
 ## ⏸️ On Hold
 
-- [ ] Swap Coffee API integration (waiting for API key access)
-- [ ] Tonstakers yields (no public API - needs team contact)
-- [ ] Bemo yields (no public API - needs team contact)
+- [ ] Moon DEX (TON-USDT pool filtered - uncorrelated pair has IL risk)
+- [ ] BidAsk DEX (USDT-TON pool filtered - uncorrelated pair has IL risk)
+- [ ] Torch Finance (0% APR - correctly filtered, no yields currently)
 
 ## 📝 Quick Notes
 
-**Latest Deployment:** Jan 14, 2026 (commit c06b559)
+**Latest Deployment:** Jan 15, 2026 (commit 310e817) 🚀
 - Production: Deno Deploy (auto-deploy from GitHub main branch)
 - Cron: Daily at 9:00 UTC
 - Channel: @ton_yields_daily (40 subscribers! 🎉)
 - Status: ✅ Running
-- Latest: Fixed Morpho APYs (now accurate: 3.4%, 0.4%)
-- Note: Morpho TVL needs refinement (working on it)
+- **Latest Updates:**
+  - ✅ Swap Coffee API integrated (100+ pools, 17+ protocols)
+  - ✅ Storm Trade, KTON, Stakee now showing
+  - ✅ EVAA USDE visibility fixed (1.5%, 3.6%)
+  - ✅ Footer updated with all data sources
+  - ⚠️  Morpho TVL still needs refinement (APYs accurate)
 
 **Development Setup:**
 - Test bot posts to @ton_yields_test (private test channel)
@@ -103,6 +113,7 @@
 deno task dev
 
 # Post to channel now
+deno task post
 
 # Send test message
 deno task test-msg
