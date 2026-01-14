@@ -23,7 +23,13 @@
 
 - [x] Test YieldFi integration locally and deploy to production (commit a200541)
 - [x] Verify YieldFi appears in 9:00 UTC post (✅ 40 subscribers!)
-- [ ] **NEW Badge Feature** 🆕 (Priority: TODAY)
+- [x] Fix Morpho APY calculation (commit c06b559) - APYs now accurate! ✅
+- [ ] **Fix Morpho TVL Calculation** 🔴 (Priority: TOMORROW)
+  - [ ] Get clarification from Morpho team on correct field for Total Deposits
+  - [ ] Test with markets[].market.totalSupply approach
+  - [ ] Verify TVL matches Mini App values (currently inconsistent)
+  - Note: APYs are accurate, only TVL needs refinement
+- [ ] **NEW Badge Feature** 🆕
   - [ ] Add emoji indicator for new yield opportunities
   - [ ] Requires historical data tracking/comparison
   - [ ] Show which pools are newly added since last post
@@ -35,7 +41,6 @@
   - [ ] Telegram Wallet (@wallet) - custodial and self-custodial
   - [ ] MyTonWallet (MTW)
   - [ ] Tonkeeper
-- [ ] Continue Morpho alignment discussions with team
 
 ## 🎯 Next Sprint (Current)
 
@@ -76,12 +81,13 @@
 
 ## 📝 Quick Notes
 
-**Latest Deployment:** Jan 13, 2026 (commit a200541)
+**Latest Deployment:** Jan 14, 2026 (commit c06b559)
 - Production: Deno Deploy (auto-deploy from GitHub main branch)
 - Cron: Daily at 9:00 UTC
-- Channel: @ton_yields_daily
+- Channel: @ton_yields_daily (40 subscribers! 🎉)
 - Status: ✅ Running
-- Latest: Added YieldFi (yUSD $31.7M, vyUSD $4.5M)
+- Latest: Fixed Morpho APYs (now accurate: 3.4%, 0.4%)
+- Note: Morpho TVL needs refinement (working on it)
 
 **Development Setup:**
 - Test bot posts to @ton_yields_test (private test channel)
@@ -97,7 +103,6 @@
 deno task dev
 
 # Post to channel now
-deno task post
 
 # Send test message
 deno task test-msg
