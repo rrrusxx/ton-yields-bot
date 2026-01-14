@@ -8,7 +8,11 @@ export const PROTOCOL_URLS: Record<string, string> = {
   // Liquid Staking
   "tonstakers": "https://tonstakers.com/",
   "bemo": "https://www.bemo.finance/",
+  "bemo_v2": "https://www.bemo.finance/",
   "hipo": "https://hipo.finance/",
+  "kton": "https://kton.io/",
+  "stakee": "https://stakee.ton.org/",
+  "torch_finance": "https://torchfinance.org/",
   
   // Lending Protocols (TMAs)
   "evaa": "https://t.me/EvaaAppBot",
@@ -20,6 +24,7 @@ export const PROTOCOL_URLS: Record<string, string> = {
   // Yield Protocols
   "fiva": "https://t.me/fiva_yield_bot",
   "daolama": "https://daolama.co/",
+  "dao_lama_vault": "https://daolama.co/",
   "yieldfi": "https://t.me/yieldfi_bot",
   "yield-fi": "https://t.me/yieldfi_bot",
   "yield.fi": "https://t.me/yieldfi_bot",
@@ -28,6 +33,7 @@ export const PROTOCOL_URLS: Record<string, string> = {
   "ston-fi": "https://app.ston.fi/pools",
   "ston.fi": "https://app.ston.fi/pools",
   "stonfi": "https://app.ston.fi/pools",
+  "stonfi_v2": "https://app.ston.fi/pools",
   "dedust": "https://dedust.io/pools",
   "tonco": "https://tonco.io/",
   "curve": "https://t.me/CurveAppBot",
@@ -35,6 +41,9 @@ export const PROTOCOL_URLS: Record<string, string> = {
   "swap-coffee": "https://swap.coffee/earn",
   "swap.coffee": "https://swap.coffee/earn",
   "swapcoffee": "https://swap.coffee/earn",
+  "coffee": "https://swap.coffee/earn",
+  "moon": "https://moon.ton.org/",
+  "bidask": "https://bidask.io/",
   
   // TAC DEXs
   "carbon": "https://t.me/CarbonDefiAppBot",

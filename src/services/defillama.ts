@@ -130,6 +130,7 @@ function sortByApy(pools: YieldOpportunity[]): YieldOpportunity[] {
   return [...pools].sort((a, b) => b.apyTotal - a.apyTotal);
 }
 
+
 /**
  * Group yields by asset type
  */
@@ -205,11 +206,41 @@ export function getTopYields(grouped: GroupedYields, limit: number = 5): YieldOp
 }
 
 /**
+ * Protocols covered by Swap Coffee API
+ * DefiLlama will exclude these to avoid duplicates
+ * 
+ * NOTE: EVAA is intentionally NOT excluded from DefiLlama because:
+ * - Swap Coffee has incomplete EVAA coverage (missing USDE and other pools)
+ * - DefiLlama has all 16 EVAA pools (100% coverage)
+ */
+const SWAP_COFFEE_PROTOCOLS = [
+  "tonstakers",
+  "bemo",
+  "hipo",
+  "kton",
+  "stakee",
+  "torch-finance",
+  // "evaa", "evaa-protocol" - NOT excluded, using DefiLlama for complete EVAA data
+  "storm-trade",
+  "ston-fi",
+  "ston.fi",
+  "stonfi",
+  "dedust",
+  "swap-coffee",
+  "swap.coffee",
+  "tonco",
+  "bidask",
+  "moon",
+  "daolama",
+];
+
+/**
  * Fetch and process all TON yields from DefiLlama only
+ * Excludes protocols that are covered by Swap Coffee API
  * Returns yields grouped by asset type
  */
 async function fetchDefiLlamaYields(): Promise<GroupedYields> {
-  console.log("Fetching yields from DefiLlama...");
+  console.log("Fetching yields from DefiLlama (excluding Swap Coffee protocols)...");
   
   // Fetch all pools
   const allPools = await fetchAllPools();
@@ -219,8 +250,15 @@ async function fetchDefiLlamaYields(): Promise<GroupedYields> {
   const tonPools = filterTonPools(allPools);
   console.log(`Found ${tonPools.length} TON pools`);
   
+  // Exclude protocols covered by Swap Coffee
+  const defiLlamaOnlyPools = tonPools.filter((pool) => {
+    const projectLower = pool.project.toLowerCase();
+    return !SWAP_COFFEE_PROTOCOLS.some(swapProj => projectLower.includes(swapProj));
+  });
+  console.log(`${defiLlamaOnlyPools.length} pools after excluding Swap Coffee protocols`);
+  
   // Transform to our format
-  const yields = tonPools.map(transformPool);
+  const yields = defiLlamaOnlyPools.map(transformPool);
   
   // Filter valid pools
   const validYields = filterValidPools(yields);
@@ -247,14 +285,16 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   const { fetchMorphoYields } = await import("./morpho.ts");
   const { fetchEulerYields } = await import("./euler.ts");
   const { fetchYieldFiYields } = await import("./yieldfi.ts");
-  
+  const { fetchSwapCoffeeYields } = await import("./swapcoffee.ts");
+
   // Fetch from all sources in parallel
-  const [defiLlamaYields, merklYields, morphoYields, eulerYields, yieldFiYields] = await Promise.all([
+  const [defiLlamaYields, merklYields, morphoYields, eulerYields, yieldFiYields, swapCoffeeYields] = await Promise.all([
     fetchDefiLlamaYields(),
     fetchMerklYields(),
     fetchMorphoYields(),
     fetchEulerYields(),
     fetchYieldFiYields(),
+    fetchSwapCoffeeYields(),
   ]);
   
   // Merge Merkl yields into the grouped structure
@@ -274,6 +314,13 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   
   // Merge YieldFi yields into the grouped structure
   for (const yield_ of yieldFiYields) {
+    defiLlamaYields[yield_.assetType].push(yield_);
+  }
+
+  // Merge Swap Coffee yields into the grouped structure
+  // No deduplication needed since DefiLlama already excludes Swap Coffee protocols
+  // EXCEPT EVAA which we intentionally kept in DefiLlama for USDE coverage
+  for (const yield_ of swapCoffeeYields) {
     defiLlamaYields[yield_.assetType].push(yield_);
   }
   

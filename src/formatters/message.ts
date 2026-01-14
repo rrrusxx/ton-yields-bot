@@ -112,7 +112,7 @@ function addLabelsForDuplicates(yields: YieldOpportunity[]): Map<YieldOpportunit
 /**
  * Format a protocol group with all its yields
  */
-function formatProtocolGroup(group: ProtocolGroup, maxItems: number = 5): string {
+function formatProtocolGroup(group: ProtocolGroup, maxItems: number = 10): string {
   const lines: string[] = [];
   
   // Protocol name as header with hyperlink (if URL available)
@@ -309,7 +309,7 @@ export function formatChannelMessage(yields: GroupedYields): string {
   sections.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   sections.push("");
   sections.push("<i>Legend: APY (+reward) | TVL</i>");
-  sections.push(`<i>Data: <a href="https://defillama.com/">DefiLlama</a> | <a href="https://merkl.xyz/">Merkl</a> | <a href="https://goldsky.com/">Goldsky</a> • ${getCurrentTimeUTC()}</i>`);
+  sections.push(`<i>Data: <a href="https://defillama.com/">DefiLlama</a> | <a href="https://merkl.xyz/">Merkl</a> | <a href="https://goldsky.com/">Goldsky</a> | <a href="https://swap.coffee/">Swap.coffee</a> • ${getCurrentTimeUTC()}</i>`);
   
   return sections.join("\n");
 }
