@@ -6,6 +6,7 @@ import {
   isSingleAsset,
   isCorrelatedPair,
   pairBelongsToCategory,
+  isTonUsdtPool,
 } from "./protocols.ts";
 
 /**
@@ -40,7 +41,8 @@ function aprToApy(apr: number): number {
  * Extract asset symbol from pool name
  * Examples: 
  *   "USDT-USDC" -> "USDT-USDC"
- *   "Provide liquidity to TON-tsTON 0.01%" -> "TON-tsTON 0.01%"
+ *   "Provide liquidity to TON-tsTON 0.01%" -> "TON-tsTON"
+ *   "Snap USD₮-TON 0.3%" -> "USD₮-TON"
  *   "Curve USDT/USDC" -> "USDT-USDC"
  */
 function extractAssetSymbol(name: string, mainParameter?: string): string {
@@ -52,10 +54,12 @@ function extractAssetSymbol(name: string, mainParameter?: string): string {
   // Clean up common patterns
   let cleaned = name
     .replace(/^Provide liquidity to\s+/i, "") // Remove Merkl prefix
-    .replace(/^(Curve|Morpho|Euler|Carbon|Snap)\s+/i, "")
+    .replace(/^(Curve|Morpho|Euler|Carbon|Snap)\s+/i, "") // Remove protocol name
     .replace(/\s+Pool$/i, "")
     .replace(/\s+Vault$/i, "")
-    .replace(/\//g, "-")
+    .replace(/\s+\d+(\.\d+)?%/g, "") // Remove fee percentages like " 0.3%" or " 0.01%"
+    .replace(/\//g, "-") // Replace / with -
+    .replace(/USD₮/g, "USDT") // Normalize unicode USDT to standard USDT
     .trim();
   
   return cleaned;
@@ -68,6 +72,7 @@ function transformMerklToYield(opp: MerklOpportunity): YieldOpportunity {
   const asset = extractAssetSymbol(opp.name, opp.mainParameter);
   const assetType = classifyAsset(asset);
   const apy = aprToApy(opp.apr);
+  const isTonUsdt = isTonUsdtPool(asset);
   
   return {
     assetType,
@@ -79,17 +84,25 @@ function transformMerklToYield(opp: MerklOpportunity): YieldOpportunity {
     apyReward: apy, // All APY is from rewards
     apyTotal: apy,
     tvlUsd: opp.tvl,
+    isTonUsdtPool: isTonUsdt,
   };
 }
 
 /**
- * Filter Merkl yields to only include correlated pairs (no IL risk)
- * Same logic as DefiLlama filtering
+ * Filter Merkl yields to only include:
+ * - Single assets (lending/staking)
+ * - Correlated pairs (no IL risk)
+ * - TON-USDT pairs (separate category, shown separately)
  */
 function filterCorrelatedMerklYields(yields: YieldOpportunity[]): YieldOpportunity[] {
   return yields.filter(pool => {
     // Single assets are always included (lending/staking)
     if (isSingleAsset(pool.asset)) {
+      return true;
+    }
+    
+    // TON-USDT pools are included (will be shown in separate category)
+    if (pool.isTonUsdtPool) {
       return true;
     }
     

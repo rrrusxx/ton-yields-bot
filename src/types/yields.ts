@@ -25,6 +25,8 @@ export interface YieldOpportunity {
   apyTotal: number;
   /** Total Value Locked in USD */
   tvlUsd: number;
+  /** Flag for TON-USDT pools (has impermanent loss risk) */
+  isTonUsdtPool?: boolean;
 }
 
 /**
@@ -60,6 +62,7 @@ export interface GroupedYields {
   TON: YieldOpportunity[];
   STABLE: YieldOpportunity[];
   BTC: YieldOpportunity[];
+  TON_USDT: YieldOpportunity[];
 }
 
 /**
@@ -78,4 +81,5 @@ export interface OrganizedYields {
   TON: ProtocolGroup[];
   STABLE: ProtocolGroup[];
   BTC: ProtocolGroup[];
+  TON_USDT: ProtocolGroup[];
 }

@@ -16,6 +16,7 @@ import {
   isCorrelatedPair,
   pairBelongsToCategory,
   isExcludedAsset,
+  isTonUsdtPool,
 } from "./protocols.ts";
 
 /**
@@ -71,6 +72,7 @@ function transformPool(pool: DefiLlamaPool): YieldOpportunity {
   const apyBase = pool.apyBase ?? 0;
   const apyReward = pool.apyReward ?? null;
   const apyTotal = pool.apy ?? apyBase + (apyReward ?? 0);
+  const isTonUsdt = isTonUsdtPool(pool.symbol);
   
   return {
     assetType,
@@ -82,6 +84,7 @@ function transformPool(pool: DefiLlamaPool): YieldOpportunity {
     apyReward,
     apyTotal,
     tvlUsd: pool.tvlUsd ?? 0,
+    isTonUsdtPool: isTonUsdt,
   };
 }
 
@@ -101,9 +104,15 @@ function filterValidPools(pools: YieldOpportunity[]): YieldOpportunity[] {
  * Filter pools to only include:
  * - Single assets (lending, staking)
  * - LP pairs with correlated assets (no IL risk)
+ * Excludes TON-USDT pools (they go in separate category)
  */
 function filterCorrelatedOnly(pools: YieldOpportunity[]): YieldOpportunity[] {
   return pools.filter(pool => {
+    // Exclude TON-USDT pools (handled separately)
+    if (pool.isTonUsdtPool) {
+      return false;
+    }
+    
     // Single assets are always included
     if (isSingleAsset(pool.asset)) {
       return true;
@@ -114,6 +123,13 @@ function filterCorrelatedOnly(pools: YieldOpportunity[]): YieldOpportunity[] {
     return pairBelongsToCategory(pool.asset, pool.assetType) && 
            isCorrelatedPair(pool.asset, pool.assetType);
   });
+}
+
+/**
+ * Filter pools to only include TON-USDT LP pairs
+ */
+function filterTonUsdtOnly(pools: YieldOpportunity[]): YieldOpportunity[] {
+  return pools.filter(pool => pool.isTonUsdtPool === true);
 }
 
 /**
@@ -139,16 +155,23 @@ function groupByAssetType(pools: YieldOpportunity[]): GroupedYields {
     TON: [],
     STABLE: [],
     BTC: [],
+    TON_USDT: [],
   };
   
   for (const pool of pools) {
-    grouped[pool.assetType].push(pool);
+    // TON-USDT pools go in separate category
+    if (pool.isTonUsdtPool) {
+      grouped.TON_USDT.push(pool);
+    } else {
+      grouped[pool.assetType].push(pool);
+    }
   }
   
   // Sort each group by TVL
   grouped.TON = sortByTvl(grouped.TON);
   grouped.STABLE = sortByTvl(grouped.STABLE);
   grouped.BTC = sortByTvl(grouped.BTC);
+  grouped.TON_USDT = sortByTvl(grouped.TON_USDT);
   
   return grouped;
 }
@@ -194,14 +217,17 @@ function organizeYields(grouped: GroupedYields): OrganizedYields {
     TON: groupByProtocol(grouped.TON),
     STABLE: groupByProtocol(grouped.STABLE),
     BTC: groupByProtocol(grouped.BTC),
+    TON_USDT: groupByProtocol(grouped.TON_USDT),
   };
 }
 
 /**
  * Get top N yields by APY across all categories
+ * Excludes TON-USDT pools (IL risk)
  */
 export function getTopYields(grouped: GroupedYields, limit: number = 5): YieldOpportunity[] {
   const allYields = [...grouped.TON, ...grouped.STABLE, ...grouped.BTC];
+  // Explicitly exclude TON-USDT pools from TOP 5 (they have IL risk)
   return sortByApy(allYields).slice(0, limit);
 }
 
@@ -212,6 +238,8 @@ export function getTopYields(grouped: GroupedYields, limit: number = 5): YieldOp
  * NOTE: EVAA is intentionally NOT excluded from DefiLlama because:
  * - Swap Coffee has incomplete EVAA coverage (missing USDE and other pools)
  * - DefiLlama has all 16 EVAA pools (100% coverage)
+ * 
+ * NOTE: Moon is excluded entirely as it's no longer live on TON
  */
 const SWAP_COFFEE_PROTOCOLS = [
   "tonstakers",
@@ -230,7 +258,7 @@ const SWAP_COFFEE_PROTOCOLS = [
   "swap.coffee",
   "tonco",
   "bidask",
-  "moon",
+  "moon", // Excluded - no longer live on TON
   "daolama",
 ];
 
@@ -264,13 +292,17 @@ async function fetchDefiLlamaYields(): Promise<GroupedYields> {
   const validYields = filterValidPools(yields);
   console.log(`${validYields.length} pools after basic filtering`);
   
-  // Filter to correlated pairs only (no IL risk)
+  // Separate TON-USDT pools from correlated pairs
+  const tonUsdtYields = filterTonUsdtOnly(validYields);
   const correlatedYields = filterCorrelatedOnly(validYields);
-  console.log(`${correlatedYields.length} pools after correlated filter`);
+  console.log(`${correlatedYields.length} correlated pools, ${tonUsdtYields.length} TON-USDT pools`);
   
-  // Group by asset type
-  const grouped = groupByAssetType(correlatedYields);
-  console.log(`Grouped: ${grouped.TON.length} TON, ${grouped.STABLE.length} STABLE, ${grouped.BTC.length} BTC`);
+  // Combine both types for grouping
+  const allYields = [...correlatedYields, ...tonUsdtYields];
+  
+  // Group by asset type (TON-USDT will be in separate category)
+  const grouped = groupByAssetType(allYields);
+  console.log(`Grouped: ${grouped.TON.length} TON, ${grouped.STABLE.length} STABLE, ${grouped.BTC.length} BTC, ${grouped.TON_USDT.length} TON-USDT`);
   
   return grouped;
 }
@@ -299,37 +331,58 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   
   // Merge Merkl yields into the grouped structure
   for (const yield_ of merklYields) {
-    defiLlamaYields[yield_.assetType].push(yield_);
+    if (yield_.isTonUsdtPool) {
+      defiLlamaYields.TON_USDT.push(yield_);
+    } else {
+      defiLlamaYields[yield_.assetType].push(yield_);
+    }
   }
   
   // Merge Morpho yields into the grouped structure
   for (const yield_ of morphoYields) {
-    defiLlamaYields[yield_.assetType].push(yield_);
+    if (yield_.isTonUsdtPool) {
+      defiLlamaYields.TON_USDT.push(yield_);
+    } else {
+      defiLlamaYields[yield_.assetType].push(yield_);
+    }
   }
   
   // Merge Euler yields into the grouped structure
   for (const yield_ of eulerYields) {
-    defiLlamaYields[yield_.assetType].push(yield_);
+    if (yield_.isTonUsdtPool) {
+      defiLlamaYields.TON_USDT.push(yield_);
+    } else {
+      defiLlamaYields[yield_.assetType].push(yield_);
+    }
   }
   
   // Merge YieldFi yields into the grouped structure
   for (const yield_ of yieldFiYields) {
-    defiLlamaYields[yield_.assetType].push(yield_);
+    if (yield_.isTonUsdtPool) {
+      defiLlamaYields.TON_USDT.push(yield_);
+    } else {
+      defiLlamaYields[yield_.assetType].push(yield_);
+    }
   }
 
   // Merge Swap Coffee yields into the grouped structure
   // No deduplication needed since DefiLlama already excludes Swap Coffee protocols
   // EXCEPT EVAA which we intentionally kept in DefiLlama for USDE coverage
   for (const yield_ of swapCoffeeYields) {
-    defiLlamaYields[yield_.assetType].push(yield_);
+    if (yield_.isTonUsdtPool) {
+      defiLlamaYields.TON_USDT.push(yield_);
+    } else {
+      defiLlamaYields[yield_.assetType].push(yield_);
+    }
   }
   
   // Re-sort after merging
   defiLlamaYields.TON = sortByTvl(defiLlamaYields.TON);
   defiLlamaYields.STABLE = sortByTvl(defiLlamaYields.STABLE);
   defiLlamaYields.BTC = sortByTvl(defiLlamaYields.BTC);
+  defiLlamaYields.TON_USDT = sortByTvl(defiLlamaYields.TON_USDT);
   
-  console.log(`Total after merge: ${defiLlamaYields.TON.length} TON, ${defiLlamaYields.STABLE.length} STABLE, ${defiLlamaYields.BTC.length} BTC`);
+  console.log(`Total after merge: ${defiLlamaYields.TON.length} TON, ${defiLlamaYields.STABLE.length} STABLE, ${defiLlamaYields.BTC.length} BTC, ${defiLlamaYields.TON_USDT.length} TON-USDT`);
   
   return defiLlamaYields;
 }

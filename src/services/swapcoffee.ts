@@ -19,6 +19,7 @@ import {
   isSingleAsset,
   isEthAsset,
   isExcludedAsset,
+  isTonUsdtPool,
 } from "./protocols.ts";
 
 const SWAPCOFFEE_API = "https://backend.swap.coffee/v1/yield/pools";
@@ -238,6 +239,9 @@ function transformSwapCoffeePool(pool: SwapCoffeePool): YieldOpportunity | null 
   const apyBase = pool.pool_statistics.lp_apr || 0;
   const apyReward = pool.pool_statistics.boost_apr || 0;
   const apyTotal = pool.pool_statistics.apr;
+  
+  // Check if this is a TON-USDT pool
+  const isTonUsdt = isTonUsdtPool(asset);
 
   return {
     assetType,
@@ -249,6 +253,7 @@ function transformSwapCoffeePool(pool: SwapCoffeePool): YieldOpportunity | null 
     apyReward: apyReward > 0 ? apyReward : null,
     apyTotal,
     tvlUsd: pool.pool_statistics.tvl_usd,
+    isTonUsdtPool: isTonUsdt,
   };
 }
 
@@ -259,7 +264,13 @@ function filterCorrelatedPools(
   pools: YieldOpportunity[],
 ): YieldOpportunity[] {
   return pools.filter((pool) => {
+    // Single assets always included
     if (isSingleAsset(pool.asset)) return true;
+    
+    // TON-USDT pools are included (shown in separate category)
+    if (pool.isTonUsdtPool) return true;
+    
+    // Correlated pairs (no IL risk)
     return (
       pairBelongsToCategory(pool.asset, pool.assetType) &&
       isCorrelatedPair(pool.asset, pool.assetType)
@@ -277,8 +288,12 @@ export async function fetchSwapCoffeeYields(): Promise<YieldOpportunity[]> {
   console.log(`Fetched ${allPools.length} pools from Swap Coffee`);
 
   // Filter out EVAA pools - we use DefiLlama for complete EVAA coverage (includes USDE)
-  const pools = allPools.filter(pool => pool.protocol.toLowerCase() !== "evaa");
-  console.log(`${pools.length} pools after excluding EVAA (using DefiLlama for EVAA)`);
+  // Filter out Moon - no longer live on TON
+  const pools = allPools.filter(pool => {
+    const protocol = pool.protocol.toLowerCase();
+    return protocol !== "evaa" && protocol !== "moon";
+  });
+  console.log(`${pools.length} pools after excluding EVAA and Moon`);
 
   // Transform to yield opportunities
   const yields = pools

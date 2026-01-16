@@ -303,6 +303,14 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
     sections.push("");
   }
   
+  // TON-USDT pools section (impermanent loss risk) - shown before BTC
+  const tonUsdtGroups = organizeByProtocol(yields.TON_USDT);
+  const tonUsdtSection = formatCategorySection("YIELDS FOR TON-USDT POOLS", tonUsdtGroups);
+  if (tonUsdtSection) {
+    sections.push(tonUsdtSection);
+    sections.push("");
+  }
+  
   // BTC section (if any)
   const btcGroups = organizeByProtocol(yields.BTC);
   const btcSection = formatCategorySection("BTC AND RELATED ASSETS", btcGroups);

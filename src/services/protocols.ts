@@ -304,6 +304,35 @@ export function parseLpPair(symbol: string): [string, string] | null {
 }
 
 /**
+ * Check if a pool is a TON-USDT liquidity pool
+ * Returns true ONLY for exact TON-USDT or USDT-TON pairs
+ * Excludes LSTs (tsTON, stTON, etc.) and other tokens (STON, TONNEL, etc.)
+ */
+export function isTonUsdtPool(symbol: string): boolean {
+  const pair = parseLpPair(symbol);
+  if (!pair) {
+    return false;
+  }
+  
+  let [asset1, asset2] = pair;
+  
+  // Normalize unicode USDT variants (USD₮ -> USDT)
+  asset1 = asset1.replace(/USD₮/g, "USDT");
+  asset2 = asset2.replace(/USD₮/g, "USDT");
+  
+  // Check for EXACT "TON" (not tsTON, TONNEL, STON, etc.)
+  const isTon1 = asset1 === "TON";
+  const isTon2 = asset2 === "TON";
+  
+  // Check for EXACT "USDT" or common variants (tsUSDT, USDT.e)
+  const isUsdt1 = asset1 === "USDT" || asset1 === "TSUSDT" || asset1 === "USDT.E";
+  const isUsdt2 = asset2 === "USDT" || asset2 === "TSUSDT" || asset2 === "USDT.E";
+  
+  // One must be TON and the other must be USDT
+  return (isTon1 && isUsdt2) || (isTon2 && isUsdt1);
+}
+
+/**
  * Check if an LP pair consists of correlated assets
  */
 export function isCorrelatedPair(symbol: string, assetType: AssetType): boolean {
