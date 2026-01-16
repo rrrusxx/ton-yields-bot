@@ -112,15 +112,15 @@ function addLabelsForDuplicates(yields: YieldOpportunity[]): Map<YieldOpportunit
 /**
  * Format a protocol group with all its yields
  */
-function formatProtocolGroup(group: ProtocolGroup, maxItems: number = 10): string {
+function formatProtocolGroup(group: ProtocolGroup): string {
   const lines: string[] = [];
   
   // Protocol name as header with hyperlink (if URL available)
   const protocolLink = formatProtocolLink(group.protocol, group.protocolUrl);
   lines.push(`<b>${protocolLink}</b>`);
   
-  // Limit yields per protocol
-  const yields = group.yields.slice(0, maxItems);
+  // Show all yields (no limit)
+  const yields = group.yields;
   
   // Generate labels for duplicates
   const labels = addLabelsForDuplicates(yields);
@@ -139,8 +139,7 @@ function formatProtocolGroup(group: ProtocolGroup, maxItems: number = 10): strin
  */
 function formatCategorySection(
   title: string,
-  protocolGroups: ProtocolGroup[],
-  maxProtocols: number = 10
+  protocolGroups: ProtocolGroup[]
 ): string {
   if (protocolGroups.length === 0) {
     return "";
@@ -154,13 +153,10 @@ function formatCategorySection(
   lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   lines.push("");
   
-  // Limit protocols shown
-  const groups = protocolGroups.slice(0, maxProtocols);
-  
-  // Add each protocol group
-  groups.forEach((group, index) => {
+  // Show all protocols (no limit)
+  protocolGroups.forEach((group, index) => {
     lines.push(formatProtocolGroup(group));
-    if (index < groups.length - 1) {
+    if (index < protocolGroups.length - 1) {
       lines.push(""); // Spacing between protocols
     }
   });
