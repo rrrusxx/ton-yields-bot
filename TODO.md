@@ -4,6 +4,12 @@
 
 ## ✅ Recently Completed
 
+- [x] **TON Total TVL Metric Added** (Jan 17, 2026) 🎉
+  - [x] Created new TVL service (`src/services/tvl.ts`)
+  - [x] Fetches DeFi TVL from DefiLlama protocols API
+  - [x] Excludes CEXs and LST (matches website's $92.94M value)
+  - [x] Displays as "TON DeFi TVL: $94.3M" right after date
+  - [x] Gracefully handles API errors (shows nothing if unavailable)
 - [x] **Swap Coffee API Integration** (commit 310e817) - MAJOR UPDATE! 🎉
   - [x] Integrated 100+ pools from 17+ TON-native protocols
   - [x] Storm Trade: TON (7.1%, $6.7M), USDT (10.1%, $5.9M)

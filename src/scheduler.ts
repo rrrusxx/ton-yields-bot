@@ -21,7 +21,7 @@ export async function postDailyYields(bot: Bot): Promise<void> {
     }
     
     // Format the message
-    const message = formatChannelMessage(yields);
+    const message = await formatChannelMessage(yields);
     
     // Send to channel
     await sendToChannel(bot, message);

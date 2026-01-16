@@ -1,5 +1,6 @@
 import type { GroupedYields, OrganizedYields, ProtocolGroup, YieldOpportunity } from "../types/yields.ts";
 import { getTopYields } from "../services/defillama.ts";
+import { fetchTonTVL, formatTVL } from "../services/tvl.ts";
 
 /**
  * Format TVL in human-readable format
@@ -261,12 +262,21 @@ function organizeByProtocol(yields: YieldOpportunity[]): ProtocolGroup[] {
  * Format the complete message for Telegram channel
  * Uses HTML parse mode for formatting
  */
-export function formatChannelMessage(yields: GroupedYields): string {
+export async function formatChannelMessage(yields: GroupedYields): Promise<string> {
   const sections: string[] = [];
+  
+  // Fetch TON TVL
+  const tonTvl = await fetchTonTVL();
   
   // Header
   sections.push("<b>TON Yields Daily</b>");
   sections.push(`${getCurrentDateUTC()}`);
+  
+  // TON TVL (if available)
+  if (tonTvl > 0) {
+    sections.push(`<i>💎 TON DeFi TVL: ${formatTVL(tonTvl)}</i>`);
+  }
+  
   sections.push("");
   
   // Top 5 Yields section

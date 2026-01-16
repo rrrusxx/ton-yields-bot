@@ -62,7 +62,7 @@ async function main(): Promise<void> {
     try {
       ctx.reply("⏳ Fetching current yields...");
       const yields = await fetchTonYields();
-      const message = formatChannelMessage(yields);
+      const message = await formatChannelMessage(yields);
       await ctx.reply(message, { 
         parse_mode: "HTML",
         disable_web_page_preview: true 
@@ -113,7 +113,7 @@ async function runTestMode(): Promise<void> {
     }
     
     console.log("\n=== FORMATTED MESSAGE ===\n");
-    const message = formatChannelMessage(yields);
+    const message = await formatChannelMessage(yields);
     // Strip HTML tags for console output
     const plainMessage = message
       .replace(/<[^>]*>/g, "")
