@@ -1,6 +1,7 @@
 import type { GroupedYields, OrganizedYields, ProtocolGroup, YieldOpportunity } from "../types/yields.ts";
 import { getTopYields } from "../services/defillama.ts";
 import { fetchTonTVL, formatTVL } from "../services/tvl.ts";
+import { saveTvlSnapshot, calculateTvlChange, formatTvlChange } from "../services/tvl_history.ts";
 
 /**
  * Format TVL in human-readable format
@@ -274,7 +275,21 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   
   // TON TVL (if available)
   if (tonTvl > 0) {
-    sections.push(`<i>💎 TON DeFi TVL: ${formatTVL(tonTvl)}</i>`);
+    // Calculate 24h change
+    const change = await calculateTvlChange(tonTvl);
+    
+    // Save today's snapshot for future comparisons
+    await saveTvlSnapshot(tonTvl);
+    
+    // Format TVL line with change
+    let tvlLine = `<i>💎 TON DeFi TVL: ${formatTVL(tonTvl)}`;
+    if (change) {
+      const changeStr = formatTvlChange(change.change, change.changePercent);
+      tvlLine += ` <b>${changeStr}</b> 24h`;
+    }
+    tvlLine += `</i>`;
+    
+    sections.push(tvlLine);
   }
   
   sections.push("");
