@@ -2,11 +2,11 @@
   "name": "ton-yields-bot",
   "version": "1.0.0",
   "tasks": {
-    "dev": "deno run --unstable-cron --allow-net --allow-env --allow-read --allow-write --allow-import --watch src/main.ts",
-    "start": "deno run --unstable-cron --allow-net --allow-env --allow-read --allow-write --allow-import src/main.ts",
-    "post": "deno run --unstable-cron --allow-net --allow-env --allow-read --allow-write --allow-import src/main.ts --post-now",
-    "test-msg": "deno run --unstable-cron --allow-net --allow-env --allow-read --allow-write --allow-import src/main.ts --test",
-    "test": "deno test --allow-net --allow-env --allow-read --allow-write --allow-import"
+    "dev": "deno run --unstable-cron --unstable-kv --allow-net --allow-env --allow-read --allow-write --allow-import --watch src/main.ts",
+    "start": "deno run --unstable-cron --unstable-kv --allow-net --allow-env --allow-read --allow-write --allow-import src/main.ts",
+    "post": "deno run --unstable-cron --unstable-kv --allow-net --allow-env --allow-read --allow-write --allow-import src/main.ts --post-now",
+    "test-msg": "deno run --unstable-cron --unstable-kv --allow-net --allow-env --allow-read --allow-write --allow-import src/main.ts --test",
+    "test": "deno test --unstable-kv --allow-net --allow-env --allow-read --allow-write --allow-import"
   },
   "imports": {
     "grammy": "https://deno.land/x/grammy@v1.21.1/mod.ts",

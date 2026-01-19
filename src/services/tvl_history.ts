@@ -1,6 +1,7 @@
 /**
  * TON TVL History Tracker
  * Stores daily TVL snapshots to calculate 24h changes
+ * Uses Deno KV for persistent storage across deployments
  */
 
 interface TvlSnapshot {
@@ -13,46 +14,64 @@ interface TvlHistory {
   snapshots: TvlSnapshot[];
 }
 
-const HISTORY_FILE = "./data/tvl_history.json";
+const KV_KEY = ["tvl_history"];
 const MAX_HISTORY_DAYS = 30; // Keep last 30 days
 
 /**
- * Ensure data directory exists
+ * Open Deno KV database
+ * In production (Deno Deploy): uses cloud KV (no path needed)
+ * In development: uses local file in ./data/kv.db
  */
-async function ensureDataDir(): Promise<void> {
-  try {
-    await Deno.mkdir("./data", { recursive: true });
-  } catch (error) {
-    // Directory already exists
-    if (!(error instanceof Deno.errors.AlreadyExists)) {
-      throw error;
+async function getKv(): Promise<Deno.Kv> {
+  // Check if we're in Deno Deploy production environment
+  const isProduction = Deno.env.get("DENO_DEPLOYMENT_ID") !== undefined;
+  
+  if (isProduction) {
+    // Production: Use cloud KV (default)
+    return await Deno.openKv();
+  } else {
+    // Development: Use local file-based KV
+    try {
+      await Deno.mkdir("./data", { recursive: true });
+    } catch {
+      // Directory already exists
     }
+    return await Deno.openKv("./data/kv.db");
   }
 }
 
 /**
- * Load TVL history from file
+ * Load TVL history from Deno KV
  */
 async function loadHistory(): Promise<TvlHistory> {
   try {
-    const data = await Deno.readTextFile(HISTORY_FILE);
-    return JSON.parse(data);
-  } catch (error) {
-    // File doesn't exist yet
-    if (error instanceof Deno.errors.NotFound) {
-      return { snapshots: [] };
+    const kv = await getKv();
+    const result = await kv.get<TvlHistory>(KV_KEY);
+    kv.close();
+    
+    if (result.value) {
+      return result.value;
     }
-    console.error("Failed to load TVL history:", error);
+    
+    return { snapshots: [] };
+  } catch (error) {
+    console.error("Failed to load TVL history from KV:", error);
     return { snapshots: [] };
   }
 }
 
 /**
- * Save TVL history to file
+ * Save TVL history to Deno KV
  */
 async function saveHistory(history: TvlHistory): Promise<void> {
-  await ensureDataDir();
-  await Deno.writeTextFile(HISTORY_FILE, JSON.stringify(history, null, 2));
+  try {
+    const kv = await getKv();
+    await kv.set(KV_KEY, history);
+    kv.close();
+  } catch (error) {
+    console.error("Failed to save TVL history to KV:", error);
+    throw error;
+  }
 }
 
 /**
@@ -104,7 +123,7 @@ export async function saveTvlSnapshot(tvl: number): Promise<void> {
     history.snapshots = history.snapshots.slice(0, MAX_HISTORY_DAYS);
     
     await saveHistory(history);
-    console.log(`TVL snapshot saved: ${today} = $${(tvl / 1000000).toFixed(2)}M`);
+    console.log(`✓ TVL snapshot saved to KV: ${today} = $${(tvl / 1000000).toFixed(2)}M`);
   } catch (error) {
     console.error("Failed to save TVL snapshot:", error);
   }

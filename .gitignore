@@ -15,5 +15,5 @@ Thumbs.db
 # Logs
 *.log
 
-# Data
+# Local KV database (development only)
 data/
