@@ -28,6 +28,7 @@ export const PROTOCOL_URLS: Record<string, string> = {
   "yieldfi": "https://t.me/yieldfi_bot",
   "yield-fi": "https://t.me/yieldfi_bot",
   "yield.fi": "https://t.me/yieldfi_bot",
+  "ethena": "https://app.ethena.fi/earn/ton",
   
   // DEXs
   "ston-fi": "https://app.ston.fi/pools",

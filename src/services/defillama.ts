@@ -317,15 +317,17 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   const { fetchMorphoYields } = await import("./morpho.ts");
   const { fetchEulerYields } = await import("./euler.ts");
   const { fetchYieldFiYields } = await import("./yieldfi.ts");
+  const { fetchEthenaYields } = await import("./ethena.ts");
   const { fetchSwapCoffeeYields } = await import("./swapcoffee.ts");
 
   // Fetch from all sources in parallel
-  const [defiLlamaYields, merklYields, morphoYields, eulerYields, yieldFiYields, swapCoffeeYields] = await Promise.all([
+  const [defiLlamaYields, merklYields, morphoYields, eulerYields, yieldFiYields, ethenaYields, swapCoffeeYields] = await Promise.all([
     fetchDefiLlamaYields(),
     fetchMerklYields(),
     fetchMorphoYields(),
     fetchEulerYields(),
     fetchYieldFiYields(),
+    fetchEthenaYields(),
     fetchSwapCoffeeYields(),
   ]);
   
@@ -358,6 +360,15 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   
   // Merge YieldFi yields into the grouped structure
   for (const yield_ of yieldFiYields) {
+    if (yield_.isTonUsdtPool) {
+      defiLlamaYields.TON_USDT.push(yield_);
+    } else {
+      defiLlamaYields[yield_.assetType].push(yield_);
+    }
+  }
+  
+  // Merge Ethena yields into the grouped structure
+  for (const yield_ of ethenaYields) {
     if (yield_.isTonUsdtPool) {
       defiLlamaYields.TON_USDT.push(yield_);
     } else {
