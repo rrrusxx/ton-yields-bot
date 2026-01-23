@@ -246,6 +246,10 @@ const CORRELATED_PAIRS: Record<AssetType, string[][]> = {
     ["USDE", "USD0"],
     ["USDE", "USR"],
     ["USDE", "SUSDE"],
+    ["USDE", "TSUSDE"],  // tsUSDE is staked USDE
+    ["TSUSDE", "SUSDE"], // tsUSDE and sUSDE are the same asset
+    ["TSUSDE", "USDT"],  // tsUSDE-USDT is correlated (both stablecoins)
+    ["TSUSDE", "USDC"],  // tsUSDE-USDC is correlated (both stablecoins)
     ["USN", "USD0"],
     ["USN", "USR"],
     ["USD0", "USR"],
@@ -298,9 +302,40 @@ export function isSingleAsset(symbol: string): boolean {
  */
 export function parseLpPair(symbol: string): [string, string] | null {
   const parts = symbol.split(/[-\/]/);
+  
+  // Handle 2-part symbols (standard LP pairs)
   if (parts.length === 2) {
     return [parts[0].toUpperCase(), parts[1].toUpperCase()];
   }
+  
+  // Handle multi-part symbols with vault/pool identifiers
+  // Examples: TSUSDE-USDT-VAULT7, TON-TSTON-TSUSDE-USDT-XAUT0, TSUSDE-USDE-USDT
+  if (parts.length >= 3) {
+    // Filter out known vault/pool suffixes
+    const vaultSuffixes = ["VAULT", "POOL", "LP", "XAUT", "MAIN", "STABLE", "ALTS"];
+    const assetParts = parts.filter(part => {
+      const upperPart = part.toUpperCase();
+      // Remove parts that are vault suffixes or numbers
+      return !vaultSuffixes.some(suffix => upperPart.includes(suffix)) && 
+             !/^\d+$/.test(part); // Remove numeric parts like "7" in "VAULT7"
+    });
+    
+    // If we have exactly 2 assets after filtering, use them
+    if (assetParts.length === 2) {
+      return [assetParts[0].toUpperCase(), assetParts[1].toUpperCase()];
+    }
+    
+    // If we have 3+ assets (multi-asset pool), take first 2 as primary pair
+    if (assetParts.length >= 3) {
+      // For pools like TSUSDE-USDE-USDT, we want to identify the main pair
+      // Take the first two non-duplicate assets
+      const uniqueAssets = [...new Set(assetParts.map(p => p.toUpperCase()))];
+      if (uniqueAssets.length >= 2) {
+        return [uniqueAssets[0], uniqueAssets[1]];
+      }
+    }
+  }
+  
   return null;
 }
 
