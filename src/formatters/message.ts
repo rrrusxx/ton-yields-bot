@@ -2,6 +2,7 @@ import type { GroupedYields, OrganizedYields, ProtocolGroup, YieldOpportunity } 
 import { getTopYields } from "../services/defillama.ts";
 import { fetchTonTVL, formatTVL } from "../services/tvl.ts";
 import { saveTvlSnapshot, calculateTvlChange, formatTvlChange } from "../services/tvl_history.ts";
+import { saveAllApySnapshots, calculateAll7DayAverages } from "../services/apy_history.ts";
 
 /**
  * Format TVL in human-readable format
@@ -21,11 +22,19 @@ function formatTvl(tvlUsd: number): string {
 }
 
 /**
- * Format APY percentage
+ * Format APY percentage with optional 7-day average
  * e.g., 4.234 -> "4.2%"
+ * e.g., 4.234 with avg 4.8 -> "4.2% (7d: 4.8%)"
  */
-function formatApy(apy: number): string {
-  return `${apy.toFixed(1)}%`;
+function formatApy(apy: number, avg7d?: number | null): string {
+  const current = apy.toFixed(1);
+  
+  if (avg7d !== null && avg7d !== undefined) {
+    const average = avg7d.toFixed(1);
+    return `${current}% (7d: ${average}%)`;
+  }
+  
+  return `${current}%`;
 }
 
 /**
@@ -44,17 +53,28 @@ function formatAssetWithLabel(asset: string, label: string | null): string {
 function formatYieldLine(
   yield_: YieldOpportunity,
   isLast: boolean,
-  label?: string | null
+  label?: string | null,
+  avg7d?: number | null
 ): string {
   const prefix = isLast ? "└" : "├";
   
   // Format asset with label
   const assetText = formatAssetWithLabel(yield_.asset, label ?? yield_.poolMeta);
   
-  // Format APY with optional reward
-  let apyText = formatApy(yield_.apyTotal);
+  // Format APY with optional reward and 7-day average
+  let apyText: string;
   if (yield_.apyReward && yield_.apyReward > 0.1) {
-    apyText = `${formatApy(yield_.apyBase)} (+${formatApy(yield_.apyReward)})`;
+    // For pools with rewards, show base + reward, then 7d average of total
+    const baseReward = `${formatApy(yield_.apyBase)} (+${formatApy(yield_.apyReward)})`;
+    if (avg7d !== null && avg7d !== undefined) {
+      const average = avg7d.toFixed(1);
+      apyText = `${baseReward}, 7d: ${average}%`;
+    } else {
+      apyText = baseReward;
+    }
+  } else {
+    // Regular APY with 7-day average
+    apyText = formatApy(yield_.apyTotal, avg7d);
   }
   
   // Format TVL
@@ -114,7 +134,7 @@ function addLabelsForDuplicates(yields: YieldOpportunity[]): Map<YieldOpportunit
 /**
  * Format a protocol group with all its yields
  */
-function formatProtocolGroup(group: ProtocolGroup): string {
+function formatProtocolGroup(group: ProtocolGroup, averages: Map<YieldOpportunity, number>): string {
   const lines: string[] = [];
   
   // Protocol name as header with hyperlink (if URL available)
@@ -130,7 +150,8 @@ function formatProtocolGroup(group: ProtocolGroup): string {
   // Add each yield line
   yields.forEach((y, index) => {
     const label = labels.get(y);
-    lines.push(formatYieldLine(y, index === yields.length - 1, label));
+    const avg7d = averages.get(y) || null;
+    lines.push(formatYieldLine(y, index === yields.length - 1, label, avg7d));
   });
   
   return lines.join("\n");
@@ -141,7 +162,8 @@ function formatProtocolGroup(group: ProtocolGroup): string {
  */
 function formatCategorySection(
   title: string,
-  protocolGroups: ProtocolGroup[]
+  protocolGroups: ProtocolGroup[],
+  averages: Map<YieldOpportunity, number>
 ): string {
   if (protocolGroups.length === 0) {
     return "";
@@ -157,7 +179,7 @@ function formatCategorySection(
   
   // Show all protocols (no limit)
   protocolGroups.forEach((group, index) => {
-    lines.push(formatProtocolGroup(group));
+    lines.push(formatProtocolGroup(group, averages));
     if (index < protocolGroups.length - 1) {
       lines.push(""); // Spacing between protocols
     }
@@ -169,7 +191,7 @@ function formatCategorySection(
 /**
  * Format Top 5 yields section
  */
-function formatTopYieldsSection(yields: YieldOpportunity[]): string {
+function formatTopYieldsSection(yields: YieldOpportunity[], averages: Map<YieldOpportunity, number>): string {
   if (yields.length === 0) {
     return "";
   }
@@ -189,10 +211,20 @@ function formatTopYieldsSection(yields: YieldOpportunity[]): string {
     // Format asset with label if available
     const assetText = formatAssetWithLabel(y.asset, y.poolMeta);
     
-    // Format APY
-    let apyText = formatApy(y.apyTotal);
+    // Format APY with 7-day average
+    const avg7d = averages.get(y) || null;
+    let apyText: string;
     if (y.apyReward && y.apyReward > 0.1) {
-      apyText = `${formatApy(y.apyBase)} (+${formatApy(y.apyReward)})`;
+      // For pools with rewards, show base + reward, then 7d average of total
+      const baseReward = `${formatApy(y.apyBase)} (+${formatApy(y.apyReward)})`;
+      if (avg7d !== null && avg7d !== undefined) {
+        const average = avg7d.toFixed(1);
+        apyText = `${baseReward}, 7d: ${average}%`;
+      } else {
+        apyText = baseReward;
+      }
+    } else {
+      apyText = formatApy(y.apyTotal, avg7d);
     }
     
     // Protocol link (with URL if available)
@@ -266,6 +298,15 @@ function organizeByProtocol(yields: YieldOpportunity[]): ProtocolGroup[] {
 export async function formatChannelMessage(yields: GroupedYields): Promise<string> {
   const sections: string[] = [];
   
+  // Collect all pools into a flat array for APY history tracking
+  const allPools = [...yields.TON, ...yields.STABLE, ...yields.BTC, ...yields.TON_USDT];
+  
+  // Calculate 7-day averages for all pools (before formatting)
+  const averages = await calculateAll7DayAverages(allPools);
+  
+  // Save today's APY snapshots for future calculations
+  await saveAllApySnapshots(allPools);
+  
   // Fetch TON TVL
   const tonTvl = await fetchTonTVL();
   
@@ -296,7 +337,7 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   
   // Top 5 Yields section
   const top5 = getTopYields(yields, 5);
-  const topSection = formatTopYieldsSection(top5);
+  const topSection = formatTopYieldsSection(top5, averages);
   if (topSection) {
     sections.push(topSection);
     sections.push("");
@@ -304,7 +345,7 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   
   // TON and related assets section
   const tonGroups = organizeByProtocol(yields.TON);
-  const tonSection = formatCategorySection("TON AND RELATED ASSETS", tonGroups);
+  const tonSection = formatCategorySection("TON AND RELATED ASSETS", tonGroups, averages);
   if (tonSection) {
     sections.push(tonSection);
     sections.push("");
@@ -312,7 +353,7 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   
   // Stablecoins section
   const stableGroups = organizeByProtocol(yields.STABLE);
-  const stableSection = formatCategorySection("STABLECOINS AND RELATED ASSETS", stableGroups);
+  const stableSection = formatCategorySection("STABLECOINS AND RELATED ASSETS", stableGroups, averages);
   if (stableSection) {
     sections.push(stableSection);
     sections.push("");
@@ -320,7 +361,7 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   
   // TON-USDT pools section (impermanent loss risk) - shown before BTC
   const tonUsdtGroups = organizeByProtocol(yields.TON_USDT);
-  const tonUsdtSection = formatCategorySection("YIELDS FOR TON-USDT POOLS", tonUsdtGroups);
+  const tonUsdtSection = formatCategorySection("YIELDS FOR TON-USDT POOLS", tonUsdtGroups, averages);
   if (tonUsdtSection) {
     sections.push(tonUsdtSection);
     sections.push("");
@@ -328,7 +369,7 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   
   // BTC section (if any)
   const btcGroups = organizeByProtocol(yields.BTC);
-  const btcSection = formatCategorySection("BTC AND RELATED ASSETS", btcGroups);
+  const btcSection = formatCategorySection("BTC AND RELATED ASSETS", btcGroups, averages);
   if (btcSection) {
     sections.push(btcSection);
     sections.push("");
