@@ -4,6 +4,14 @@
 
 ## ✅ Recently Completed
 
+- [x] **7-Day Average APY Tracking** (Jan 23, 2026) 🎉
+  - [x] Created APY history service with Deno KV storage
+  - [x] Tracks daily APY snapshots for all pools
+  - [x] Displays rolling 7-day averages after 3+ days of history
+  - [x] Format: "4.5% (7d: 4.8%)" for regular pools
+  - [x] Format: "0.0% (+22.9%), 7d: 23.0%" for reward-based pools
+  - [x] Backfilled 4 days of historical data (Jan 20-23)
+  - [x] Persistent storage works in production (Deno Deploy)
 - [x] **TON Total TVL Metric Added** (Jan 17, 2026) 🎉
   - [x] Created new TVL service (`src/services/tvl.ts`)
   - [x] Fetches DeFi TVL from DefiLlama protocols API
@@ -61,9 +69,6 @@
   - [ ] Identify data sources (DefiLlama, API, contracts)
   - [ ] Determine yield types and integration approach
   - [ ] Priority: Medium (needs research first)
-- [ ] Create database with historical yields
-- [ ] Add 7-day average APYs
-- [ ] Show APY delta vs yesterday
 - [ ] Research additional yield sources
 
 ## 📅 Next Week
@@ -85,25 +90,21 @@
 - [ ] User alerts system (APY changes, new opportunities)
 - [ ] Wallet integration (track user positions)
 
-## ⏸️ On Hold
-
-- [ ] Moon DEX (TON-USDT pool filtered - uncorrelated pair has IL risk)
-- [ ] BidAsk DEX (USDT-TON pool filtered - uncorrelated pair has IL risk)
-- [ ] Torch Finance (0% APR - correctly filtered, no yields currently)
-
 ## 📝 Quick Notes
 
-**Latest Deployment:** Jan 17, 2026 (commit 3cd85d1) 🚀
+**Latest Deployment:** Jan 23, 2026 (commit b313d11) 🚀
 - Production: Deno Deploy (auto-deploy from GitHub main branch)
 - Cron: Daily at 9:00 UTC
 - Channel: @ton_yields_daily (40 subscribers! 🎉)
 - Status: ✅ Running
 - **Latest Updates:**
-  - ✅ TON Total DeFi TVL metric added (💎 $94.3M)
+  - ✅ 7-Day Average APY tracking (format: "4.5% (7d: 4.8%)")
+  - ✅ Historical data backfilled (4 days for 37 pools)
+  - ✅ TON Total DeFi TVL metric with 24h change tracking
   - ✅ Morpho integration verified correct by team
   - ✅ Swap Coffee API integrated (100+ pools, 17+ protocols)
-  - ✅ Storm Trade, KTON, Stakee now showing
-  - ✅ EVAA USDE visibility fixed (1.5%, 3.6%)
+  - ✅ Ethena protocol integration (tsUSDE stablecoin)
+  - ✅ TON-USDT pools dedicated category
   - ✅ All data sources integrated and working
 
 **Development Setup:**
