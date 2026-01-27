@@ -301,11 +301,12 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   // Collect all pools into a flat array for APY history tracking
   const allPools = [...yields.TON, ...yields.STABLE, ...yields.BTC, ...yields.TON_USDT];
   
-  // Calculate 7-day averages for all pools (before formatting)
-  const averages = await calculateAll7DayAverages(allPools);
-  
-  // Save today's APY snapshots for future calculations
+  // IMPORTANT: Save today's APY snapshots FIRST before calculating averages
+  // This ensures today's data is included in the average calculation
   await saveAllApySnapshots(allPools);
+  
+  // Calculate 7-day averages for all pools (includes today's data)
+  const averages = await calculateAll7DayAverages(allPools);
   
   // Fetch TON TVL
   const tonTvl = await fetchTonTVL();
