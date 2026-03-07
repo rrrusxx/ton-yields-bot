@@ -27,6 +27,39 @@ interface MerklOpportunity {
   type?: string;
 }
 
+const FEATHER_ZONE_URL = "https://api.feather.zone/vault/v2/aprs";
+
+/**
+ * Fetch base APRs for Morpho v2 vaults from Feather Zone.
+ * Returns a map of lowercase vault address → base APY (in %).
+ * Feather Zone returns APR as a decimal (e.g. 0.000689 = 0.069%).
+ * We use continuous compounding to convert APR → APY: APY = (e^APR - 1) * 100.
+ */
+async function fetchFeatherZoneBaseApys(): Promise<Map<string, number>> {
+  try {
+    const response = await fetch(FEATHER_ZONE_URL);
+    if (!response.ok) {
+      console.warn(`Feather Zone API error: ${response.status}`);
+      return new Map();
+    }
+    const data: Array<{ vaultId: string; apr: number }> = await response.json();
+    const map = new Map<string, number>();
+    for (const { vaultId, apr } of data) {
+      // Convert decimal APR → APY percentage (continuous compounding)
+      const apy = (Math.exp(apr) - 1) * 100;
+      // Only store meaningful rates (>= 0.001%)
+      if (apy >= 0.001) {
+        map.set(vaultId.toLowerCase(), apy);
+      }
+    }
+    console.log(`Feather Zone: ${map.size} v2 vault base APYs loaded`);
+    return map;
+  } catch (error) {
+    console.warn("Failed to fetch Feather Zone APRs:", error);
+    return new Map();
+  }
+}
+
 /**
  * Convert APR to APY
  * Formula: APY = (1 + APR/365)^365 - 1
@@ -68,23 +101,31 @@ function extractAssetSymbol(name: string, mainParameter?: string): string {
 }
 
 /**
- * Transform Merkl opportunity to our YieldOpportunity format
+ * Transform Merkl opportunity to our YieldOpportunity format.
+ * baseApyMap: optional map of lowercase vault address → base APY % (from Feather Zone).
  */
-function transformMerklToYield(opp: MerklOpportunity): YieldOpportunity {
+function transformMerklToYield(
+  opp: MerklOpportunity,
+  baseApyMap: Map<string, number> = new Map(),
+): YieldOpportunity {
   const asset = extractAssetSymbol(opp.name, opp.mainParameter);
   const assetType = classifyAsset(asset);
-  const apy = aprToApy(opp.apr);
+  const rewardApy = aprToApy(opp.apr);
   const isTonUsdt = isTonUsdtPool(asset);
-  
+
+  // Look up Feather Zone base APY for this vault (matched by contract address)
+  const baseApy = baseApyMap.get(opp.identifier.toLowerCase()) ?? 0;
+  const totalApy = baseApy + rewardApy;
+
   return {
     assetType,
     source: formatProtocolName(opp.protocol.name),
     sourceUrl: getProtocolUrl(opp.protocol.name),
     asset,
     poolMeta: null,
-    apyBase: 0, // Merkl only shows reward APR
-    apyReward: apy, // All APY is from rewards
-    apyTotal: apy,
+    apyBase: baseApy,
+    apyReward: rewardApy,
+    apyTotal: totalApy,
     tvlUsd: opp.tvl,
     isTonUsdtPool: isTonUsdt,
   };
@@ -122,7 +163,11 @@ export async function fetchMerklYields(): Promise<YieldOpportunity[]> {
   console.log("Fetching yields from Merkl API (TAC chain)...");
   
   try {
-    const response = await fetch("https://api.merkl.xyz/v4/opportunities?chainId=239");
+    // Fetch Merkl opportunities and Feather Zone base APYs in parallel
+    const [response, baseApyMap] = await Promise.all([
+      fetch("https://api.merkl.xyz/v4/opportunities?chainId=239"),
+      fetchFeatherZoneBaseApys(),
+    ]);
     
     if (!response.ok) {
       throw new Error(`Merkl API error: ${response.status} ${response.statusText}`);
@@ -131,14 +176,14 @@ export async function fetchMerklYields(): Promise<YieldOpportunity[]> {
     const opportunities: MerklOpportunity[] = await response.json();
     console.log(`Fetched ${opportunities.length} opportunities from Merkl`);
     
-    // Filter and transform
+    // Filter and transform, injecting Feather Zone base APYs
     const yields = opportunities
       .filter(opp => 
-        opp.apr > 0 && // Has APR
+        opp.apr > 0 && // Has Merkl reward APR
         opp.tvl > 5000 && // Minimum TVL threshold
         opp.chainId === 239 // TAC chain
       )
-      .map(transformMerklToYield);
+      .map(opp => transformMerklToYield(opp, baseApyMap));
     
     console.log(`${yields.length} Merkl yields after basic filtering`);
     
