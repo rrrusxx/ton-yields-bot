@@ -53,8 +53,10 @@ function extractAssetSymbol(name: string, mainParameter?: string): string {
   
   // Clean up common patterns
   let cleaned = name
-    .replace(/^Provide liquidity to\s+/i, "") // Remove Merkl prefix
-    .replace(/^(Curve|Morpho|Euler|Carbon|Snap)\s+/i, "") // Remove protocol name
+    .replace(/^Provide liquidity to\s+/i, "") // Remove Merkl "Provide liquidity to" prefix
+    .replace(/^Supply to\s+/i, "")             // Remove Merkl "Supply to" prefix
+    .replace(/\s+on TAC$/i, "")               // Remove " on TAC" suffix
+    .replace(/^(Curve|Morpho|Euler|Carbon|Snap)\s+/i, "") // Remove protocol name prefix
     .replace(/\s+Pool$/i, "")
     .replace(/\s+Vault$/i, "")
     .replace(/\s+\d+(\.\d+)?%/g, "") // Remove fee percentages like " 0.3%" or " 0.01%"
@@ -79,7 +81,7 @@ function transformMerklToYield(opp: MerklOpportunity): YieldOpportunity {
     source: formatProtocolName(opp.protocol.name),
     sourceUrl: getProtocolUrl(opp.protocol.name),
     asset,
-    poolMeta: "Merkl", // Label to indicate this is from Merkl rewards
+    poolMeta: null,
     apyBase: 0, // Merkl only shows reward APR
     apyReward: apy, // All APY is from rewards
     apyTotal: apy,
@@ -133,7 +135,7 @@ export async function fetchMerklYields(): Promise<YieldOpportunity[]> {
     const yields = opportunities
       .filter(opp => 
         opp.apr > 0 && // Has APR
-        opp.tvl > 10000 && // Minimum TVL threshold
+        opp.tvl > 5000 && // Minimum TVL threshold
         opp.chainId === 239 // TAC chain
       )
       .map(transformMerklToYield);

@@ -201,6 +201,7 @@ const BTC_ASSETS = [
   "LBTC",
   "M-BTC",
   "MBTC",
+  "uniBTC",
 ];
 
 /**
@@ -265,6 +266,34 @@ const CORRELATED_PAIRS: Record<AssetType, string[][]> = {
     ["cbBTC", "WBTC"],
     ["LBTC", "WBTC"],
     ["cbBTC", "MBTC"],
+    ["cbBTC", "uniBTC"],
+    ["LBTC", "uniBTC"],
+    ["WBTC", "uniBTC"],
+  ],
+  // ETH LSTs and variants are correlated
+  ETH: [
+    ["ETH", "WETH"],
+    ["ETH", "STETH"],
+    ["ETH", "WSTETH"],
+    ["ETH", "RETH"],
+    ["ETH", "RSETH"],
+    ["ETH", "WRSETH"],
+    ["ETH", "PUFETH"],
+    ["ETH", "EETH"],
+    ["ETH", "WEETH"],
+    ["WETH", "STETH"],
+    ["WETH", "WSTETH"],
+    ["WETH", "RETH"],
+    ["WETH", "RSETH"],
+    ["WETH", "WRSETH"],
+    ["WETH", "PUFETH"],
+    ["WETH", "EETH"],
+    ["WETH", "WEETH"],
+    ["STETH", "WSTETH"],
+    ["STETH", "RETH"],
+    ["WSTETH", "RETH"],
+    ["RSETH", "WRSETH"],
+    ["EETH", "WEETH"],
   ],
 };
 
@@ -274,7 +303,7 @@ const CORRELATED_PAIRS: Record<AssetType, string[][]> = {
 export function classifyAsset(symbol: string): AssetType {
   const upperSymbol = symbol.toUpperCase().replace(/[^A-Z0-9]/g, "");
   
-  // Check for stablecoins first (more specific)
+  // Check for stablecoins first (most specific)
   if (STABLE_ASSETS.some(stable => upperSymbol.includes(stable.replace(/[^A-Z0-9]/g, "")))) {
     return "STABLE";
   }
@@ -282,6 +311,11 @@ export function classifyAsset(symbol: string): AssetType {
   // Check for BTC assets
   if (BTC_ASSETS.some(btc => upperSymbol.includes(btc.replace(/[^A-Z0-9]/g, "")))) {
     return "BTC";
+  }
+
+  // Check for ETH assets (use includes so vault names like "Re7 WETH V2 vault on Morpho" are caught)
+  if (ETH_ASSETS.some(eth => upperSymbol.includes(eth.replace(/[^A-Z0-9]/g, "")))) {
+    return "ETH";
   }
   
   // Default to TON category
@@ -427,6 +461,13 @@ export function pairBelongsToCategory(symbol: string, assetType: AssetType): boo
     const isBtc1 = BTC_ASSETS.some(b => asset1.includes(b));
     const isBtc2 = BTC_ASSETS.some(b => asset2.includes(b));
     return isBtc1 && isBtc2;
+  }
+  
+  // For ETH category: both assets should be ETH-related
+  if (assetType === "ETH") {
+    const isEth1 = ETH_ASSETS.some(e => asset1.includes(e.replace(/[^A-Z0-9]/g, "")));
+    const isEth2 = ETH_ASSETS.some(e => asset2.includes(e.replace(/[^A-Z0-9]/g, "")));
+    return isEth1 && isEth2;
   }
   
   return false;

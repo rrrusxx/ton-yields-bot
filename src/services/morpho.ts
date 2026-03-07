@@ -10,7 +10,6 @@ import {
   isCorrelatedPair,
   pairBelongsToCategory,
   isSingleAsset,
-  isEthAsset,
 } from "./protocols.ts";
 import type { YieldOpportunity } from "../types/yields.ts";
 
@@ -153,11 +152,6 @@ function transformMetaMorpho(vault: MorphoMetaMorpho): YieldOpportunity | null {
     return null;
   }
   
-  // Skip ETH assets - we only show TON, Stablecoins, and BTC
-  if (isEthAsset(asset)) {
-    return null;
-  }
-
   // Calculate TVL (deployed capital + idle)
   const tvlInTokens = calculateTVL(vault);
   const tvlUsd = estimateUSDValue(tvlInTokens, asset);

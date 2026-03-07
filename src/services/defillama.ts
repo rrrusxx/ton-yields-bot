@@ -155,6 +155,7 @@ function groupByAssetType(pools: YieldOpportunity[]): GroupedYields {
     TON: [],
     STABLE: [],
     BTC: [],
+    ETH: [],
     TON_USDT: [],
   };
   
@@ -171,6 +172,7 @@ function groupByAssetType(pools: YieldOpportunity[]): GroupedYields {
   grouped.TON = sortByTvl(grouped.TON);
   grouped.STABLE = sortByTvl(grouped.STABLE);
   grouped.BTC = sortByTvl(grouped.BTC);
+  grouped.ETH = sortByTvl(grouped.ETH);
   grouped.TON_USDT = sortByTvl(grouped.TON_USDT);
   
   return grouped;
@@ -217,6 +219,7 @@ function organizeYields(grouped: GroupedYields): OrganizedYields {
     TON: groupByProtocol(grouped.TON),
     STABLE: groupByProtocol(grouped.STABLE),
     BTC: groupByProtocol(grouped.BTC),
+    ETH: groupByProtocol(grouped.ETH),
     TON_USDT: groupByProtocol(grouped.TON_USDT),
   };
 }
@@ -226,7 +229,7 @@ function organizeYields(grouped: GroupedYields): OrganizedYields {
  * Excludes TON-USDT pools (IL risk)
  */
 export function getTopYields(grouped: GroupedYields, limit: number = 5): YieldOpportunity[] {
-  const allYields = [...grouped.TON, ...grouped.STABLE, ...grouped.BTC];
+  const allYields = [...grouped.TON, ...grouped.STABLE, ...grouped.BTC, ...grouped.ETH];
   // Explicitly exclude TON-USDT pools from TOP 5 (they have IL risk)
   return sortByApy(allYields).slice(0, limit);
 }
@@ -302,7 +305,7 @@ async function fetchDefiLlamaYields(): Promise<GroupedYields> {
   
   // Group by asset type (TON-USDT will be in separate category)
   const grouped = groupByAssetType(allYields);
-  console.log(`Grouped: ${grouped.TON.length} TON, ${grouped.STABLE.length} STABLE, ${grouped.BTC.length} BTC, ${grouped.TON_USDT.length} TON-USDT`);
+  console.log(`Grouped: ${grouped.TON.length} TON, ${grouped.STABLE.length} STABLE, ${grouped.BTC.length} BTC, ${grouped.ETH.length} ETH, ${grouped.TON_USDT.length} TON-USDT`);
   
   return grouped;
 }
@@ -391,9 +394,10 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   defiLlamaYields.TON = sortByTvl(defiLlamaYields.TON);
   defiLlamaYields.STABLE = sortByTvl(defiLlamaYields.STABLE);
   defiLlamaYields.BTC = sortByTvl(defiLlamaYields.BTC);
+  defiLlamaYields.ETH = sortByTvl(defiLlamaYields.ETH);
   defiLlamaYields.TON_USDT = sortByTvl(defiLlamaYields.TON_USDT);
   
-  console.log(`Total after merge: ${defiLlamaYields.TON.length} TON, ${defiLlamaYields.STABLE.length} STABLE, ${defiLlamaYields.BTC.length} BTC, ${defiLlamaYields.TON_USDT.length} TON-USDT`);
+  console.log(`Total after merge: ${defiLlamaYields.TON.length} TON, ${defiLlamaYields.STABLE.length} STABLE, ${defiLlamaYields.BTC.length} BTC, ${defiLlamaYields.ETH.length} ETH, ${defiLlamaYields.TON_USDT.length} TON-USDT`);
   
   return defiLlamaYields;
 }

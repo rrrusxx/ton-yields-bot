@@ -1,7 +1,7 @@
 /**
  * Asset type categories for TON yields
  */
-export type AssetType = "TON" | "STABLE" | "BTC";
+export type AssetType = "TON" | "STABLE" | "BTC" | "ETH";
 
 /**
  * Represents a single yield opportunity from any protocol
@@ -62,6 +62,7 @@ export interface GroupedYields {
   TON: YieldOpportunity[];
   STABLE: YieldOpportunity[];
   BTC: YieldOpportunity[];
+  ETH: YieldOpportunity[];
   TON_USDT: YieldOpportunity[];
 }
 
@@ -81,5 +82,6 @@ export interface OrganizedYields {
   TON: ProtocolGroup[];
   STABLE: ProtocolGroup[];
   BTC: ProtocolGroup[];
+  ETH: ProtocolGroup[];
   TON_USDT: ProtocolGroup[];
 }

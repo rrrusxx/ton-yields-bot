@@ -17,7 +17,6 @@ import {
   isCorrelatedPair,
   pairBelongsToCategory,
   isSingleAsset,
-  isEthAsset,
   isExcludedAsset,
   isTonUsdtPool,
 } from "./protocols.ts";
@@ -215,11 +214,6 @@ function transformSwapCoffeePool(pool: SwapCoffeePool): YieldOpportunity | null 
 
   const asset = getAssetSymbol(pool);
   const assetType = classifyAsset(asset);
-  
-  // Skip ETH assets
-  if (isEthAsset(asset)) {
-    return null;
-  }
   
   // Skip excluded assets (memecoins)
   if (isExcludedAsset(asset)) {

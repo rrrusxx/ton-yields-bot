@@ -133,16 +133,17 @@ function addLabelsForDuplicates(yields: YieldOpportunity[]): Map<YieldOpportunit
 
 /**
  * Format a protocol group with all its yields
+ * @param maxYields - Optional limit on how many yields to show (by TVL)
  */
-function formatProtocolGroup(group: ProtocolGroup, averages: Map<YieldOpportunity, number>): string {
+function formatProtocolGroup(group: ProtocolGroup, averages: Map<YieldOpportunity, number>, maxYields?: number): string {
   const lines: string[] = [];
   
   // Protocol name as header with hyperlink (if URL available)
   const protocolLink = formatProtocolLink(group.protocol, group.protocolUrl);
   lines.push(`<b>${protocolLink}</b>`);
   
-  // Show all yields (no limit)
-  const yields = group.yields;
+  // Apply optional limit (yields are already sorted by TVL)
+  const yields = maxYields ? group.yields.slice(0, maxYields) : group.yields;
   
   // Generate labels for duplicates
   const labels = addLabelsForDuplicates(yields);
@@ -158,12 +159,14 @@ function formatProtocolGroup(group: ProtocolGroup, averages: Map<YieldOpportunit
 }
 
 /**
- * Format a category section (TON, STABLE, or BTC)
+ * Format a category section (TON, STABLE, BTC, ETH, etc.)
+ * @param protocolLimits - Optional map of protocol name -> max yields to show
  */
 function formatCategorySection(
   title: string,
   protocolGroups: ProtocolGroup[],
-  averages: Map<YieldOpportunity, number>
+  averages: Map<YieldOpportunity, number>,
+  protocolLimits?: Map<string, number>
 ): string {
   if (protocolGroups.length === 0) {
     return "";
@@ -177,9 +180,9 @@ function formatCategorySection(
   lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   lines.push("");
   
-  // Show all protocols (no limit)
   protocolGroups.forEach((group, index) => {
-    lines.push(formatProtocolGroup(group, averages));
+    const limit = protocolLimits?.get(group.protocol);
+    lines.push(formatProtocolGroup(group, averages, limit));
     if (index < protocolGroups.length - 1) {
       lines.push(""); // Spacing between protocols
     }
@@ -299,7 +302,7 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   const sections: string[] = [];
   
   // Collect all pools into a flat array for APY history tracking
-  const allPools = [...yields.TON, ...yields.STABLE, ...yields.BTC, ...yields.TON_USDT];
+  const allPools = [...yields.TON, ...yields.STABLE, ...yields.BTC, ...yields.ETH, ...yields.TON_USDT];
   
   // IMPORTANT: Save today's APY snapshots FIRST before calculating averages
   // This ensures today's data is included in the average calculation
@@ -352,9 +355,10 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
     sections.push("");
   }
   
-  // Stablecoins section
+  // Stablecoins section (EVAA capped at 3 pools to avoid clutter)
   const stableGroups = organizeByProtocol(yields.STABLE);
-  const stableSection = formatCategorySection("STABLECOINS AND RELATED ASSETS", stableGroups, averages);
+  const stableLimits = new Map([["EVAA", 3]]);
+  const stableSection = formatCategorySection("STABLECOINS AND RELATED ASSETS", stableGroups, averages, stableLimits);
   if (stableSection) {
     sections.push(stableSection);
     sections.push("");
@@ -373,6 +377,14 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   const btcSection = formatCategorySection("BTC AND RELATED ASSETS", btcGroups, averages);
   if (btcSection) {
     sections.push(btcSection);
+    sections.push("");
+  }
+
+  // ETH section (if any)
+  const ethGroups = organizeByProtocol(yields.ETH);
+  const ethSection = formatCategorySection("ETH AND RELATED ASSETS", ethGroups, averages);
+  if (ethSection) {
+    sections.push(ethSection);
     sections.push("");
   }
   

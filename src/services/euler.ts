@@ -6,7 +6,6 @@ import {
   isCorrelatedPair,
   pairBelongsToCategory,
   isSingleAsset,
-  isEthAsset,
 } from "./protocols.ts";
 import type { YieldOpportunity } from "../types/yields.ts";
 
@@ -512,11 +511,6 @@ function transformEulerVault(vault: any): YieldOpportunity | null {
 
     // Extract asset symbol
     const asset = extractAssetSymbol(vault.assetSymbol);
-
-    // Skip ETH assets
-    if (isEthAsset(asset)) {
-      return null;
-    }
 
     // Skip test tokens
     const testTokens = ["BMW", "LADA", "unknown"];
