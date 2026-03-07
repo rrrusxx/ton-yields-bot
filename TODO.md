@@ -92,19 +92,19 @@
 
 ## 📝 Quick Notes
 
-**Latest Deployment:** Jan 23, 2026 (commit b313d11) 🚀
+**Latest Deployment:** Jan 23, 2026 (commit ab6f90d) 🚀
 - Production: Deno Deploy (auto-deploy from GitHub main branch)
 - Cron: Daily at 9:00 UTC
 - Channel: @ton_yields_daily (40 subscribers! 🎉)
 - Status: ✅ Running
 - **Latest Updates:**
+  - ✅ ETH AND RELATED ASSETS section (WETH, LSTs, Re7 WETH vault)
+  - ✅ Shortened Merkl pool names (removed "Supply to" / "on TAC" / "(Merkl)")
+  - ✅ EVAA stablecoins capped at top 3 by TVL
+  - ✅ uniBTC added to BTC assets
   - ✅ 7-Day Average APY tracking (format: "4.5% (7d: 4.8%)")
-  - ✅ Historical data backfilled (4 days for 37 pools)
   - ✅ TON Total DeFi TVL metric with 24h change tracking
-  - ✅ Morpho integration verified correct by team
   - ✅ Swap Coffee API integrated (100+ pools, 17+ protocols)
-  - ✅ Ethena protocol integration (tsUSDE stablecoin)
-  - ✅ TON-USDT pools dedicated category
   - ✅ All data sources integrated and working
 
 **Development Setup:**
