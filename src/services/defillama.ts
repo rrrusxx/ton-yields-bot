@@ -230,8 +230,9 @@ function organizeYields(grouped: GroupedYields): OrganizedYields {
  */
 export function getTopYields(grouped: GroupedYields, limit: number = 5): YieldOpportunity[] {
   const allYields = [...grouped.TON, ...grouped.STABLE, ...grouped.BTC, ...grouped.ETH];
-  // Explicitly exclude TON-USDT pools from TOP 5 (they have IL risk)
-  return sortByApy(allYields).slice(0, limit);
+  // Exclude TON-USDT pools (IL risk) and Snap (no TON wallet interface yet)
+  const filtered = allYields.filter(y => y.source !== "Snap");
+  return sortByApy(filtered).slice(0, limit);
 }
 
 /**
