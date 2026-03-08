@@ -4,6 +4,27 @@ import { fetchTonTVL, formatTVL } from "../services/tvl.ts";
 import { saveTvlSnapshot, calculateTvlChange, formatTvlChange } from "../services/tvl_history.ts";
 import { saveAllApySnapshots, calculateAll7DayAverages } from "../services/apy_history.ts";
 
+const SEPARATOR = "──────────────────────";
+
+/**
+ * Rank emojis for TOP 5
+ */
+function getRankEmoji(rank: number): string {
+  return ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"][rank - 1] ?? `${rank}.`;
+}
+
+/**
+ * APY direction indicator vs 7-day average.
+ * Uses a threshold of 5% relative or 0.3% absolute (whichever is larger)
+ * to avoid noise on very low or very high APY pools.
+ */
+function getApyDirection(current: number, avg7d: number): string {
+  const threshold = Math.max(0.3, avg7d * 0.05);
+  if (current > avg7d + threshold) return " ↑";
+  if (current < avg7d - threshold) return " ↓";
+  return "";
+}
+
 /**
  * Format TVL in human-readable format
  * e.g., 1500000 -> "$1.5M"
@@ -22,16 +43,17 @@ function formatTvl(tvlUsd: number): string {
 }
 
 /**
- * Format APY percentage with optional 7-day average
+ * Format APY percentage with optional 7-day average and direction indicator.
  * e.g., 4.234 -> "4.2%"
- * e.g., 4.234 with avg 4.8 -> "4.2% (7d: 4.8%)"
+ * e.g., 4.234 with avg 4.8 -> "4.2% ↓ (7d: 4.8%)"
  */
 function formatApy(apy: number, avg7d?: number | null): string {
   const current = apy.toFixed(1);
   
   if (avg7d !== null && avg7d !== undefined) {
+    const direction = getApyDirection(apy, avg7d);
     const average = avg7d.toFixed(1);
-    return `${current}% (7d: ${average}%)`;
+    return `${current}%${direction} (7d: ${average}%)`;
   }
   
   return `${current}%`;
@@ -64,16 +86,17 @@ function formatYieldLine(
   // Format APY with optional reward and 7-day average
   let apyText: string;
   if (yield_.apyReward && yield_.apyReward > 0.1) {
-    // For pools with rewards, show base + reward, then 7d average of total
+    // For pools with rewards, show base + reward, then direction + 7d average of total
     const baseReward = `${formatApy(yield_.apyBase)} (+${formatApy(yield_.apyReward)})`;
     if (avg7d !== null && avg7d !== undefined) {
+      const direction = getApyDirection(yield_.apyTotal, avg7d);
       const average = avg7d.toFixed(1);
-      apyText = `${baseReward}, 7d: ${average}%`;
+      apyText = `${baseReward}${direction} 7d: ${average}%`;
     } else {
       apyText = baseReward;
     }
   } else {
-    // Regular APY with 7-day average
+    // Regular APY with 7-day average and direction indicator
     apyText = formatApy(yield_.apyTotal, avg7d);
   }
   
@@ -138,7 +161,7 @@ function addLabelsForDuplicates(yields: YieldOpportunity[]): Map<YieldOpportunit
 function formatProtocolGroup(group: ProtocolGroup, averages: Map<YieldOpportunity, number>, maxYields?: number): string {
   const lines: string[] = [];
   
-  // Protocol name as header with hyperlink (if URL available)
+  // Protocol name as header with hyperlink
   const protocolLink = formatProtocolLink(group.protocol, group.protocolUrl);
   lines.push(`<b>${protocolLink}</b>`);
   
@@ -174,10 +197,9 @@ function formatCategorySection(
   
   const lines: string[] = [];
   
-  // Section header
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  // Section header (single separator + bold title)
+  lines.push(SEPARATOR);
   lines.push(`<b>${title}</b>`);
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   lines.push("");
   
   protocolGroups.forEach((group, index) => {
@@ -202,27 +224,27 @@ function formatTopYieldsSection(yields: YieldOpportunity[], averages: Map<YieldO
   const lines: string[] = [];
   
   // Section header
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  lines.push("<b>TOP 5 YIELD OPPORTUNITIES</b>");
-  lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  lines.push(SEPARATOR);
+  lines.push("<b>🏆 TOP 5 YIELD OPPORTUNITIES</b>");
   lines.push("");
   
   // Add each yield
   yields.forEach((y, index) => {
-    const rank = index + 1;
+    const rankEmoji = getRankEmoji(index + 1);
     
     // Format asset with label if available
     const assetText = formatAssetWithLabel(y.asset, y.poolMeta);
     
-    // Format APY with 7-day average
+    // Format APY with 7-day average and direction
     const avg7d = averages.get(y) || null;
     let apyText: string;
     if (y.apyReward && y.apyReward > 0.1) {
-      // For pools with rewards, show base + reward, then 7d average of total
+      // For pools with rewards, show base + reward, then direction + 7d average of total
       const baseReward = `${formatApy(y.apyBase)} (+${formatApy(y.apyReward)})`;
       if (avg7d !== null && avg7d !== undefined) {
+        const direction = getApyDirection(y.apyTotal, avg7d);
         const average = avg7d.toFixed(1);
-        apyText = `${baseReward}, 7d: ${average}%`;
+        apyText = `${baseReward}${direction} 7d: ${average}%`;
       } else {
         apyText = baseReward;
       }
@@ -233,7 +255,7 @@ function formatTopYieldsSection(yields: YieldOpportunity[], averages: Map<YieldO
     // Protocol link (with URL if available)
     const protocolLink = formatProtocolLink(y.source, y.sourceUrl);
     
-    lines.push(`${rank}. ${protocolLink} ${assetText}: ${apyText} | ${formatTvl(y.tvlUsd)}`);
+    lines.push(`${rankEmoji} ${protocolLink} ${assetText}: ${apyText} | ${formatTvl(y.tvlUsd)}`);
   });
   
   return lines.join("\n");
@@ -314,6 +336,12 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   // Fetch TON TVL
   const tonTvl = await fetchTonTVL();
   
+  // Count displayed opportunities (EVAA capped at 3 in stable section)
+  const evaaDisplayed = Math.min(yields.STABLE.filter(y => y.source === "EVAA").length, 3);
+  const nonEvaaStable = yields.STABLE.filter(y => y.source !== "EVAA").length;
+  const displayedCount = yields.TON.length + evaaDisplayed + nonEvaaStable + yields.BTC.length + yields.ETH.length + yields.TON_USDT.length;
+  const activeCategories = [yields.TON, yields.STABLE, yields.BTC, yields.ETH, yields.TON_USDT].filter(c => c.length > 0).length;
+
   // Header
   sections.push("<b>TON Yields Daily</b>");
   sections.push(`${getCurrentDateUTC()}`);
@@ -336,7 +364,8 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
     
     sections.push(tvlLine);
   }
-  
+
+  sections.push(`<i>${displayedCount} opportunities · ${activeCategories} categories</i>`);
   sections.push("");
   
   // Top 5 Yields section
@@ -349,7 +378,7 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   
   // TON and related assets section
   const tonGroups = organizeByProtocol(yields.TON);
-  const tonSection = formatCategorySection("TON AND RELATED ASSETS", tonGroups, averages);
+  const tonSection = formatCategorySection("💎 TON AND RELATED ASSETS", tonGroups, averages);
   if (tonSection) {
     sections.push(tonSection);
     sections.push("");
@@ -358,15 +387,15 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   // Stablecoins section (EVAA capped at 3 pools to avoid clutter)
   const stableGroups = organizeByProtocol(yields.STABLE);
   const stableLimits = new Map([["EVAA", 3]]);
-  const stableSection = formatCategorySection("STABLECOINS AND RELATED ASSETS", stableGroups, averages, stableLimits);
+  const stableSection = formatCategorySection("💵 STABLECOINS AND RELATED ASSETS", stableGroups, averages, stableLimits);
   if (stableSection) {
     sections.push(stableSection);
     sections.push("");
   }
   
-  // TON-USDT pools section (impermanent loss risk) - shown before BTC
+  // TON-USDT pools section (impermanent loss risk)
   const tonUsdtGroups = organizeByProtocol(yields.TON_USDT);
-  const tonUsdtSection = formatCategorySection("YIELDS FOR TON-USDT POOLS", tonUsdtGroups, averages);
+  const tonUsdtSection = formatCategorySection("🔄 YIELDS FOR TON-USDT POOLS", tonUsdtGroups, averages);
   if (tonUsdtSection) {
     sections.push(tonUsdtSection);
     sections.push("");
@@ -374,7 +403,7 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   
   // BTC section (if any)
   const btcGroups = organizeByProtocol(yields.BTC);
-  const btcSection = formatCategorySection("BTC AND RELATED ASSETS", btcGroups, averages);
+  const btcSection = formatCategorySection("₿ BTC AND RELATED ASSETS", btcGroups, averages);
   if (btcSection) {
     sections.push(btcSection);
     sections.push("");
@@ -382,17 +411,17 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
 
   // ETH section (if any)
   const ethGroups = organizeByProtocol(yields.ETH);
-  const ethSection = formatCategorySection("ETH AND RELATED ASSETS", ethGroups, averages);
+  const ethSection = formatCategorySection("⟠ ETH AND RELATED ASSETS", ethGroups, averages);
   if (ethSection) {
     sections.push(ethSection);
     sections.push("");
   }
   
   // Footer
-  sections.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  sections.push(SEPARATOR);
   sections.push("");
-  sections.push("<i>Legend: APY (+reward) | TVL</i>");
-  sections.push(`<i>Data: <a href="https://defillama.com/">DefiLlama</a> | <a href="https://merkl.xyz/">Merkl</a> | <a href="https://goldsky.com/">Goldsky</a> | <a href="https://swap.coffee/">Swap.coffee</a> • ${getCurrentTimeUTC()}</i>`);
+  sections.push("<i>APY (7d avg) ↑↓ | TVL</i>");
+  sections.push(`<i>📊 <a href="https://defillama.com/">DefiLlama</a> · <a href="https://merkl.xyz/">Merkl</a> · <a href="https://goldsky.com/">Goldsky</a> · <a href="https://swap.coffee/">Swap.coffee</a> · ${getCurrentTimeUTC()}</i>`);
   
   return sections.join("\n");
 }
