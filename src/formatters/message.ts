@@ -195,22 +195,25 @@ function formatCategorySection(
     return "";
   }
   
-  const lines: string[] = [];
-  
-  // Section header (single separator + bold title)
-  lines.push(SEPARATOR);
-  lines.push(`<b>${title}</b>`);
-  lines.push("");
-  
+  const result: string[] = [];
+
+  // Section header - always visible (outside blockquote)
+  result.push(SEPARATOR);
+  result.push(`<b>${title}</b>`);
+
+  // Protocol content wrapped in expandable blockquote
+  const contentLines: string[] = [];
   protocolGroups.forEach((group, index) => {
     const limit = protocolLimits?.get(group.protocol);
-    lines.push(formatProtocolGroup(group, averages, limit));
+    contentLines.push(formatProtocolGroup(group, averages, limit));
     if (index < protocolGroups.length - 1) {
-      lines.push(""); // Spacing between protocols
+      contentLines.push(""); // Spacing between protocols
     }
   });
-  
-  return lines.join("\n");
+
+  result.push(`<blockquote expandable>${contentLines.join("\n")}</blockquote>`);
+
+  return result.join("\n");
 }
 
 /**
@@ -221,25 +224,25 @@ function formatTopYieldsSection(yields: YieldOpportunity[], averages: Map<YieldO
     return "";
   }
   
-  const lines: string[] = [];
-  
-  // Section header
-  lines.push(SEPARATOR);
-  lines.push("<b>🏆 TOP 5 YIELD OPPORTUNITIES</b>");
-  lines.push("");
-  
-  // Add each yield
-  yields.forEach((y, index) => {
-    const rankEmoji = getRankEmoji(index + 1);
-    
+  const result: string[] = [];
+
+  // Section header - always visible
+  result.push(SEPARATOR);
+  result.push("<b>🏆 TOP 5 YIELD OPPORTUNITIES</b>");
+
+  // Top 5 entries in an expandable blockquote
+  const contentLines: string[] = [];
+
+  yields.forEach((y) => {
+    const rankEmoji = getRankEmoji(contentLines.length + 1);
+
     // Format asset with label if available
     const assetText = formatAssetWithLabel(y.asset, y.poolMeta);
-    
+
     // Format APY with 7-day average and direction
     const avg7d = averages.get(y) || null;
     let apyText: string;
     if (y.apyReward && y.apyReward > 0.1) {
-      // For pools with rewards, show base + reward, then direction + 7d average of total
       const baseReward = `${formatApy(y.apyBase)} (+${formatApy(y.apyReward)})`;
       if (avg7d !== null && avg7d !== undefined) {
         const direction = getApyDirection(y.apyTotal, avg7d);
@@ -251,14 +254,14 @@ function formatTopYieldsSection(yields: YieldOpportunity[], averages: Map<YieldO
     } else {
       apyText = formatApy(y.apyTotal, avg7d);
     }
-    
-    // Protocol link (with URL if available)
+
     const protocolLink = formatProtocolLink(y.source, y.sourceUrl);
-    
-    lines.push(`${rankEmoji} ${protocolLink} ${assetText}: ${apyText} | ${formatTvl(y.tvlUsd)}`);
+    contentLines.push(`${rankEmoji} ${protocolLink} ${assetText}: ${apyText} | ${formatTvl(y.tvlUsd)}`);
   });
-  
-  return lines.join("\n");
+
+  result.push(`<blockquote expandable>${contentLines.join("\n")}</blockquote>`);
+
+  return result.join("\n");
 }
 
 /**
