@@ -23,7 +23,7 @@ import {
  * Fetch all yield pools from DefiLlama API
  */
 async function fetchAllPools(): Promise<DefiLlamaPool[]> {
-  const response = await fetch(config.defiLlamaApiUrl);
+  const response = await fetch(config.defiLlamaApiUrl, { signal: AbortSignal.timeout(20000) });
   
   if (!response.ok) {
     throw new Error(`DefiLlama API error: ${response.status} ${response.statusText}`);

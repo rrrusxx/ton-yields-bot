@@ -61,6 +61,7 @@ async function queryMetaMorphos(query: string): Promise<MorphoMetaMorpho[]> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query }),
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!response.ok) {

@@ -90,6 +90,7 @@ async function fetchSwapCoffeePools(): Promise<SwapCoffeePool[]> {
       headers: {
         "Accept": "application/json",
       },
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!response.ok) {

@@ -54,7 +54,7 @@ function isExcludedProtocol(protocol: DefiLlamaProtocol): boolean {
  */
 export async function fetchTonTVL(): Promise<number> {
   try {
-    const response = await fetch(DEFILLAMA_PROTOCOLS_API);
+    const response = await fetch(DEFILLAMA_PROTOCOLS_API, { signal: AbortSignal.timeout(15000) });
     
     if (!response.ok) {
       throw new Error(`DefiLlama API error: ${response.status} ${response.statusText}`);

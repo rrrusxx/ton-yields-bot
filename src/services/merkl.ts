@@ -37,7 +37,7 @@ const FEATHER_ZONE_URL = "https://api.feather.zone/vault/v2/aprs";
  */
 async function fetchFeatherZoneBaseApys(): Promise<Map<string, number>> {
   try {
-    const response = await fetch(FEATHER_ZONE_URL);
+    const response = await fetch(FEATHER_ZONE_URL, { signal: AbortSignal.timeout(10000) });
     if (!response.ok) {
       console.warn(`Feather Zone API error: ${response.status}`);
       return new Map();
@@ -165,7 +165,7 @@ export async function fetchMerklYields(): Promise<YieldOpportunity[]> {
   try {
     // Fetch Merkl opportunities and Feather Zone base APYs in parallel
     const [response, baseApyMap] = await Promise.all([
-      fetch("https://api.merkl.xyz/v4/opportunities?chainId=239"),
+      fetch("https://api.merkl.xyz/v4/opportunities?chainId=239", { signal: AbortSignal.timeout(15000) }),
       fetchFeatherZoneBaseApys(),
     ]);
     

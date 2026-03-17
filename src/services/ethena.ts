@@ -9,7 +9,7 @@ const DEFILLAMA_API_URL = "https://yields.llama.fi/pools";
 
 // Fetch Ethena pools from DefiLlama
 async function fetchEthenaPools(): Promise<DefiLlamaPool[]> {
-  const response = await fetch(DEFILLAMA_API_URL);
+  const response = await fetch(DEFILLAMA_API_URL, { signal: AbortSignal.timeout(20000) });
   
   if (!response.ok) {
     throw new Error(`DefiLlama API error: ${response.status} ${response.statusText}`);
