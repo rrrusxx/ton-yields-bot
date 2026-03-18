@@ -27,6 +27,10 @@ export interface YieldOpportunity {
   tvlUsd: number;
   /** Flag for TON-USDT pools (has impermanent loss risk) */
   isTonUsdtPool?: boolean;
+  /** Secondary platform URL (e.g. Telegram Wallet link for Morpho v2 vaults) */
+  secondarySourceUrl?: string;
+  /** Secondary platform display name */
+  secondarySourceName?: string;
 }
 
 /**

@@ -30,6 +30,16 @@ interface MerklOpportunity {
 const FEATHER_ZONE_URL = "https://api.feather.zone/vault/v2/aprs";
 
 /**
+ * Morpho v2 vaults that are also accessible via Telegram Wallet.
+ * Keyed by lowercase vault contract address (Merkl identifier field).
+ */
+const TELEGRAM_WALLET_VAULT_URLS: Record<string, string> = {
+  "0x8f1da931679dc2ac59811ace6a401c5c935a60dc": "https://bit.ly/Earn_With_USDT",  // Re7 USDT V2
+  "0x47d45b47399ccea4a89d696aef79ff8584340334": "https://bit.ly/Earn_With_BTC",   // Re7 cbBTC V2
+  "0x657f5dd51d71cfbea847fdecbca5b3fd0b82541d": "https://bit.ly/Earn_With_ETH",  // Re7 WETH V2
+};
+
+/**
  * Fetch base APRs for Morpho v2 vaults from Feather Zone.
  * Returns a map of lowercase vault address → base APY (in %).
  * Feather Zone returns APR as a decimal (e.g. 0.000689 = 0.069%).
@@ -117,6 +127,9 @@ function transformMerklToYield(
   const baseApy = baseApyMap.get(opp.identifier.toLowerCase()) ?? 0;
   const totalApy = baseApy + rewardApy;
 
+  // Check if this vault is also accessible via Telegram Wallet
+  const telegramWalletUrl = TELEGRAM_WALLET_VAULT_URLS[opp.identifier.toLowerCase()];
+
   return {
     assetType,
     source: formatProtocolName(opp.protocol.name),
@@ -128,6 +141,10 @@ function transformMerklToYield(
     apyTotal: totalApy,
     tvlUsd: opp.tvl,
     isTonUsdtPool: isTonUsdt,
+    ...(telegramWalletUrl && {
+      secondarySourceUrl: telegramWalletUrl,
+      secondarySourceName: "Telegram Wallet",
+    }),
   };
 }
 

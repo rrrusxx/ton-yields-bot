@@ -162,8 +162,13 @@ function formatProtocolGroup(group: ProtocolGroup, averages: Map<YieldOpportunit
   const lines: string[] = [];
   
   // Protocol name as header with hyperlink
+  // If any yield in this group has a secondary source (e.g. Telegram Wallet), append it
   const protocolLink = formatProtocolLink(group.protocol, group.protocolUrl);
-  lines.push(`<b>${protocolLink}</b>`);
+  const secondary = group.yields.find(y => y.secondarySourceUrl);
+  const secondaryLink = secondary?.secondarySourceUrl
+    ? ` & ${formatProtocolLink(secondary.secondarySourceName ?? "Telegram Wallet", secondary.secondarySourceUrl)}`
+    : "";
+  lines.push(`<b>${protocolLink}${secondaryLink}</b>`);
   
   // Apply optional limit (yields are already sorted by TVL)
   const yields = maxYields ? group.yields.slice(0, maxYields) : group.yields;
