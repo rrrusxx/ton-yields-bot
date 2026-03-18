@@ -85,7 +85,10 @@ function formatYieldLine(
   
   // Format APY with optional reward and 7-day average
   let apyText: string;
-  if (yield_.apyReward && yield_.apyReward > 0.1) {
+  if (yield_.apyNote) {
+    // Hardcoded/custom APY with a descriptive note instead of 7d average
+    apyText = `~${yield_.apyTotal.toFixed(2)}% (${yield_.apyNote})`;
+  } else if (yield_.apyReward && yield_.apyReward > 0.1) {
     // For pools with rewards, show base + reward, then direction + 7d average of total
     const baseReward = `${formatApy(yield_.apyBase)} (+${formatApy(yield_.apyReward)})`;
     if (avg7d !== null && avg7d !== undefined) {
@@ -247,7 +250,9 @@ function formatTopYieldsSection(yields: YieldOpportunity[], averages: Map<YieldO
     // Format APY with 7-day average and direction
     const avg7d = averages.get(y) || null;
     let apyText: string;
-    if (y.apyReward && y.apyReward > 0.1) {
+    if (y.apyNote) {
+      apyText = `~${y.apyTotal.toFixed(2)}% (${y.apyNote})`;
+    } else if (y.apyReward && y.apyReward > 0.1) {
       const baseReward = `${formatApy(y.apyBase)} (+${formatApy(y.apyReward)})`;
       if (avg7d !== null && avg7d !== undefined) {
         const direction = getApyDirection(y.apyTotal, avg7d);
@@ -333,7 +338,7 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   
   // Collect all pools into a flat array for APY history tracking
   const allPools = [...yields.TON, ...yields.STABLE, ...yields.BTC, ...yields.ETH, ...yields.TON_USDT];
-  
+
   // IMPORTANT: Save today's APY snapshots FIRST before calculating averages
   // This ensures today's data is included in the average calculation
   await saveAllApySnapshots(allPools);

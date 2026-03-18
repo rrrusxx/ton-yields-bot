@@ -323,9 +323,10 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   const { fetchYieldFiYields } = await import("./yieldfi.ts");
   const { fetchEthenaYields } = await import("./ethena.ts");
   const { fetchSwapCoffeeYields } = await import("./swapcoffee.ts");
+  const { fetchMidasVaultYield } = await import("./midas.ts");
 
   // Fetch from all sources in parallel
-  const [defiLlamaYields, merklYields, morphoYields, eulerYields, yieldFiYields, ethenaYields, swapCoffeeYields] = await Promise.all([
+  const [defiLlamaYields, merklYields, morphoYields, eulerYields, yieldFiYields, ethenaYields, swapCoffeeYields, midasYield] = await Promise.all([
     fetchDefiLlamaYields(),
     fetchMerklYields(),
     fetchMorphoYields(),
@@ -333,6 +334,7 @@ export async function fetchTonYields(): Promise<GroupedYields> {
     fetchYieldFiYields(),
     fetchEthenaYields(),
     fetchSwapCoffeeYields(),
+    fetchMidasVaultYield(),
   ]);
   
   // Merge Merkl yields into the grouped structure
@@ -391,6 +393,11 @@ export async function fetchTonYields(): Promise<GroupedYields> {
     }
   }
   
+  // Merge Midas vault (custom hardcoded yield) into STABLE
+  if (midasYield) {
+    defiLlamaYields.STABLE.push(midasYield);
+  }
+
   // Re-sort after merging
   defiLlamaYields.TON = sortByTvl(defiLlamaYields.TON);
   defiLlamaYields.STABLE = sortByTvl(defiLlamaYields.STABLE);

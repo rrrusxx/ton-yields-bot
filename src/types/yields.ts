@@ -31,6 +31,8 @@ export interface YieldOpportunity {
   secondarySourceUrl?: string;
   /** Secondary platform display name */
   secondarySourceName?: string;
+  /** Custom APY label shown in place of the 7-day average (e.g. "5y avg") */
+  apyNote?: string;
 }
 
 /**
