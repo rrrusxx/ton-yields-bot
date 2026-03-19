@@ -1,8 +1,24 @@
 import { config, validateConfig } from "./config.ts";
 import { createBot, sendToChannel } from "./bot.ts";
-import { setupDailyCron, triggerManualPost } from "./scheduler.ts";
+import { postDailyYields, triggerManualPost } from "./scheduler.ts";
 import { fetchTonYields } from "./services/defillama.ts";
 import { formatChannelMessage, formatTestMessage } from "./formatters/message.ts";
+
+// ---------------------------------------------------------------------------
+// TOP-LEVEL cron registration — Deno Deploy requires Deno.cron at top level,
+// not inside any function. The bot is created lazily inside the callback so
+// env vars are guaranteed to be available at runtime.
+// ---------------------------------------------------------------------------
+Deno.cron("daily-yield-post", "0 9 * * *", async () => {
+  console.log("Cron job triggered: daily-yield-post");
+  try {
+    validateConfig();
+    const bot = createBot();
+    await postDailyYields(bot);
+  } catch (error) {
+    console.error("Cron job failed:", error);
+  }
+});
 
 /**
  * Main entry point for the TON Yields Bot
@@ -50,9 +66,6 @@ async function main(): Promise<void> {
     console.log("Test message sent!");
     return;
   }
-  
-  // Setup daily cron job
-  setupDailyCron(bot);
   
   // Start the bot (for handling commands)
   console.log("Bot is running and listening for commands...");

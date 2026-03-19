@@ -1,4 +1,5 @@
 import type { Bot } from "grammy";
+// Note: Deno.cron is registered at top level in main.ts (Deno Deploy requirement)
 import { fetchTonYields } from "./services/defillama.ts";
 import { formatChannelMessage } from "./formatters/message.ts";
 import { sendToChannel } from "./bot.ts";
@@ -31,21 +32,6 @@ export async function postDailyYields(bot: Bot): Promise<void> {
     console.error("Failed to post daily yields:", error);
     throw error;
   }
-}
-
-/**
- * Setup the daily cron job
- * Runs at 9:00 AM UTC every day
- */
-export function setupDailyCron(bot: Bot): void {
-  // Deno.cron syntax: "minute hour day month weekday"
-  // "0 9 * * *" = At 09:00 UTC every day
-  Deno.cron("daily-yield-post", "0 9 * * *", async () => {
-    console.log("Cron job triggered: daily-yield-post");
-    await postDailyYields(bot);
-  });
-  
-  console.log("Daily cron job scheduled for 9:00 UTC");
 }
 
 /**
