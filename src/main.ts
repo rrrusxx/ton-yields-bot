@@ -4,6 +4,7 @@ import { postDailyYields, triggerManualPost } from "./scheduler.ts";
 import { fetchTonYields } from "./services/defillama.ts";
 import { formatChannelMessage, formatTestMessage } from "./formatters/message.ts";
 
+
 // ---------------------------------------------------------------------------
 // TOP-LEVEL cron registration — Deno Deploy requires Deno.cron at top level,
 // not inside any function. The bot is created lazily inside the callback so
@@ -67,27 +68,10 @@ async function main(): Promise<void> {
     return;
   }
   
-  // Start the bot (for handling commands)
-  console.log("Bot is running and listening for commands...");
-  
-  // Add /yields command handler
-  bot.command("yields", async (ctx) => {
-    try {
-      ctx.reply("⏳ Fetching current yields...");
-      const yields = await fetchTonYields();
-      const message = await formatChannelMessage(yields);
-      await ctx.reply(message, { 
-        parse_mode: "HTML",
-        disable_web_page_preview: true 
-      });
-    } catch (error) {
-      console.error("Error fetching yields:", error);
-      ctx.reply("❌ Failed to fetch yields. Please try again later.");
-    }
-  });
-  
-  // Start bot with long polling
-  bot.start();
+  // This is a pure broadcast bot — it only sends to a channel via cron.
+  // Long polling is incompatible with Deno Deploy (serverless, multiple isolates)
+  // and would cause 409 Conflict errors from Telegram. Nothing to do here.
+  console.log("Bot is ready. Waiting for cron trigger at 9:00 UTC...");
 }
 
 /**
