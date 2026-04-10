@@ -1,0 +1,48 @@
+name: Daily Yields Post
+
+on:
+  # Runs every day at 9:00 AM UTC
+  schedule:
+    - cron: '0 9 * * *'
+  # Allows manual trigger from the GitHub Actions UI
+  workflow_dispatch:
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # Restore the KV database from the previous run.
+      # Uses a prefix-based restore-key so we always get the latest snapshot
+      # even though each run saves under a unique key.
+      - name: Restore KV data cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ./data
+          key: kv-data-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            kv-data-${{ runner.os }}-
+
+      - name: Post daily yields
+        run: deno task post
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+
+      # Always save the updated KV database, even if the post step fails,
+      # so APY history is never lost.
+      - name: Save KV data cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: ./data
+          key: kv-data-${{ runner.os }}-${{ github.run_id }}
