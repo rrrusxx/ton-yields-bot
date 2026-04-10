@@ -7,11 +7,11 @@ import type { AssetType } from "../types/yields.ts";
 export const PROTOCOL_URLS: Record<string, string> = {
   // Liquid Staking
   "tonstakers": "https://tonstakers.com/",
-  "bemo": "https://www.bemo.finance/",
-  "bemo_v2": "https://www.bemo.finance/",
+  "bemo": "https://bemo.fi/",
+  "bemo_v2": "https://bemo.fi/",
   "hipo": "https://hipo.finance/",
   "kton": "https://kton.io/",
-  "stakee": "https://stakee.ton.org/",
+  "stakee": "https://t.me/StakeeBot/app",
   "torch_finance": "https://torchfinance.org/",
   
   // Lending Protocols (TMAs)
