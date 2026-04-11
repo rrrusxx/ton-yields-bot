@@ -10,7 +10,7 @@ on:
 jobs:
   post:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
 
     steps:
       - name: Checkout repository
@@ -20,6 +20,17 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+
+      # Cache Deno dependencies so they don't re-download on every run
+      - name: Cache Deno dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.deno
+            ~/.cache/deno
+          key: deno-${{ runner.os }}-${{ hashFiles('deno.json', 'deno.lock') }}
+          restore-keys: |
+            deno-${{ runner.os }}-
 
       # Restore the KV database from the previous run.
       # Uses a prefix-based restore-key so we always get the latest snapshot
