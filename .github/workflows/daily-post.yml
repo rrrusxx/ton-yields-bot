@@ -3,7 +3,7 @@ name: Daily Yields Post
 on:
   # Runs every day at 9:00 AM UTC
   schedule:
-    - cron: '0 9 * * *'
+    - cron: '0 8 * * *'
   # Allows manual trigger from the GitHub Actions UI
   workflow_dispatch:
 
