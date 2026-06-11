@@ -434,7 +434,7 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   sections.push(SEPARATOR);
   sections.push("");
   sections.push("<i>APY (7d avg) ↑↓ | TVL</i>");
-  sections.push(`<i>📊 <a href="https://defillama.com/">DefiLlama</a> · <a href="https://merkl.xyz/">Merkl</a> · <a href="https://goldsky.com/">Goldsky</a> · <a href="https://swap.coffee/">Swap.coffee</a> · ${getCurrentTimeUTC()}</i>`);
+  sections.push(`<i>📊 <a href="https://defillama.com/">DefiLlama</a> · <a href="https://merkl.xyz/">Merkl</a> · <a href="https://goldsky.com/">Goldsky</a> · <a href="https://swap.coffee/">Swap.coffee</a> · <a href="https://palette.finance/">Palette</a> · ${getCurrentTimeUTC()}</i>`);
   
   return sections.join("\n");
 }

@@ -319,22 +319,24 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   // Import services dynamically to avoid circular dependencies
   const { fetchMerklYields } = await import("./merkl.ts");
   const { fetchMorphoYields } = await import("./morpho.ts");
-  const { fetchEulerYields } = await import("./euler.ts");
   const { fetchYieldFiYields } = await import("./yieldfi.ts");
   const { fetchEthenaYields } = await import("./ethena.ts");
   const { fetchSwapCoffeeYields } = await import("./swapcoffee.ts");
   const { fetchMidasVaultYield } = await import("./midas.ts");
+  const { fetchPaletteData, applyPaletteOverrides } = await import("./palette.ts");
+
+  // Note: Euler is temporarily disabled — protocol is not available on TAC.
 
   // Fetch from all sources in parallel
-  const [defiLlamaYields, merklYields, morphoYields, eulerYields, yieldFiYields, ethenaYields, swapCoffeeYields, midasYield] = await Promise.all([
+  const [defiLlamaYields, merklYields, morphoYields, yieldFiYields, ethenaYields, swapCoffeeYields, midasYield, paletteData] = await Promise.all([
     fetchDefiLlamaYields(),
     fetchMerklYields(),
     fetchMorphoYields(),
-    fetchEulerYields(),
     fetchYieldFiYields(),
     fetchEthenaYields(),
     fetchSwapCoffeeYields(),
     fetchMidasVaultYield(),
+    fetchPaletteData(),
   ]);
   
   // Merge Merkl yields into the grouped structure
@@ -348,15 +350,6 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   
   // Merge Morpho yields into the grouped structure
   for (const yield_ of morphoYields) {
-    if (yield_.isTonUsdtPool) {
-      defiLlamaYields.TON_USDT.push(yield_);
-    } else {
-      defiLlamaYields[yield_.assetType].push(yield_);
-    }
-  }
-  
-  // Merge Euler yields into the grouped structure
-  for (const yield_ of eulerYields) {
     if (yield_.isTonUsdtPool) {
       defiLlamaYields.TON_USDT.push(yield_);
     } else {
@@ -396,6 +389,14 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   // Merge Midas vault (custom hardcoded yield) into STABLE
   if (midasYield) {
     defiLlamaYields.STABLE.push(midasYield);
+  }
+
+  // Apply Palette Finance APR overrides (more accurate values for covered
+  // protocols). Must run before re-sort and before downstream snapshot/average
+  // tracking so all consumers see the corrected APRs.
+  const overrideCount = applyPaletteOverrides(defiLlamaYields, paletteData);
+  if (overrideCount > 0) {
+    console.log(`Applied ${overrideCount} Palette APR override(s)`);
   }
 
   // Re-sort after merging
