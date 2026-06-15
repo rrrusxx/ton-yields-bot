@@ -26,6 +26,18 @@ function getApyDirection(current: number, avg7d: number): string {
 }
 
 /**
+ * Opportunities below this TVL get a low-liquidity warning marker.
+ */
+const LOW_TVL_THRESHOLD = 10_000;
+
+/**
+ * Returns a warning marker for low-TVL (low-liquidity) opportunities.
+ */
+function lowTvlWarning(tvlUsd: number): string {
+  return tvlUsd < LOW_TVL_THRESHOLD ? " ⚠️" : "";
+}
+
+/**
  * Format TVL in human-readable format
  * e.g., 1500000 -> "$1.5M"
  */
@@ -103,10 +115,10 @@ function formatYieldLine(
     apyText = formatApy(yield_.apyTotal, avg7d);
   }
   
-  // Format TVL
+  // Format TVL (with low-liquidity warning if applicable)
   const tvlText = formatTvl(yield_.tvlUsd);
   
-  return `${prefix} ${assetText}: ${apyText} | ${tvlText}`;
+  return `${prefix} ${assetText}: ${apyText} | ${tvlText}${lowTvlWarning(yield_.tvlUsd)}`;
 }
 
 /**
@@ -266,7 +278,7 @@ function formatTopYieldsSection(yields: YieldOpportunity[], averages: Map<YieldO
     }
 
     const protocolLink = formatProtocolLink(y.source, y.sourceUrl);
-    contentLines.push(`${rankEmoji} ${protocolLink} ${assetText}: ${apyText} | ${formatTvl(y.tvlUsd)}`);
+    contentLines.push(`${rankEmoji} ${protocolLink} ${assetText}: ${apyText} | ${formatTvl(y.tvlUsd)}${lowTvlWarning(y.tvlUsd)}`);
   });
 
   result.push(`<blockquote expandable>${contentLines.join("\n")}</blockquote>`);
@@ -433,7 +445,7 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   // Footer
   sections.push(SEPARATOR);
   sections.push("");
-  sections.push("<i>APY (7d avg) ↑↓ | TVL</i>");
+  sections.push("<i>APY (7d avg) ↑↓ | TVL · ⚠️ low TVL (&lt;$10K)</i>");
   sections.push(`<i>📊 <a href="https://defillama.com/">DefiLlama</a> · <a href="https://merkl.xyz/">Merkl</a> · <a href="https://goldsky.com/">Goldsky</a> · <a href="https://swap.coffee/">Swap.coffee</a> · <a href="https://palette.finance/">Palette</a> · ${getCurrentTimeUTC()}</i>`);
   
   return sections.join("\n");
