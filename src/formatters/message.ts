@@ -403,7 +403,7 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   
   // TON and related assets section
   const tonGroups = organizeByProtocol(yields.TON);
-  const tonSection = formatCategorySection("💎 TON AND RELATED ASSETS", tonGroups, averages);
+  const tonSection = formatCategorySection("💎 GRAM AND RELATED ASSETS", tonGroups, averages);
   if (tonSection) {
     sections.push(tonSection);
     sections.push("");
@@ -420,7 +420,7 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   
   // TON-USDT pools section (impermanent loss risk)
   const tonUsdtGroups = organizeByProtocol(yields.TON_USDT);
-  const tonUsdtSection = formatCategorySection("🔄 YIELDS FOR TON-USDT POOLS", tonUsdtGroups, averages);
+  const tonUsdtSection = formatCategorySection("🔄 YIELDS FOR GRAM-USDT POOLS", tonUsdtGroups, averages);
   if (tonUsdtSection) {
     sections.push(tonUsdtSection);
     sections.push("");

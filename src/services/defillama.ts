@@ -267,6 +267,14 @@ const SWAP_COFFEE_PROTOCOLS = [
 ];
 
 /**
+ * Protocols temporarily hidden from the feed (paused / unavailable).
+ * Matched as a substring against the DefiLlama project name.
+ */
+const DISABLED_PROTOCOLS = [
+  "fiva",
+];
+
+/**
  * Fetch and process all TON yields from DefiLlama only
  * Excludes protocols that are covered by Swap Coffee API
  * Returns yields grouped by asset type
@@ -282,9 +290,12 @@ async function fetchDefiLlamaYields(): Promise<GroupedYields> {
   const tonPools = filterTonPools(allPools);
   console.log(`Found ${tonPools.length} TON pools`);
   
-  // Exclude protocols covered by Swap Coffee
+  // Exclude protocols covered by Swap Coffee, plus any temporarily disabled ones
   const defiLlamaOnlyPools = tonPools.filter((pool) => {
     const projectLower = pool.project.toLowerCase();
+    if (DISABLED_PROTOCOLS.some(disabled => projectLower.includes(disabled))) {
+      return false;
+    }
     return !SWAP_COFFEE_PROTOCOLS.some(swapProj => projectLower.includes(swapProj));
   });
   console.log(`${defiLlamaOnlyPools.length} pools after excluding Swap Coffee protocols`);

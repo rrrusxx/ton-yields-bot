@@ -114,6 +114,15 @@ async function fetchSwapCoffeePools(): Promise<SwapCoffeePool[]> {
 }
 
 /**
+ * The native L1 token was renamed from TON to GRAM. Some pools still expose
+ * the underlying as "TON" while most now use "GRAM" — treat both as native.
+ */
+function isNativeSymbol(symbol: string): boolean {
+  const s = symbol.toUpperCase();
+  return s === "TON" || s === "GRAM";
+}
+
+/**
  * Get asset symbol from pool tokens
  * For single-asset pools (LST), returns the staked token symbol
  * For LP pools, returns "TOKEN1-TOKEN2"
@@ -127,10 +136,11 @@ function getAssetSymbol(pool: SwapCoffeePool): string {
   }
   
   // LST protocols: 2 tokens where one is underlying and one is receipt token
-  // Storm Trade: ["TON", "TON-SLP"] → show as "TON"
-  // KTON: ["TON", "KTON"] → show as "TON"
-  // Stakee: ["TON", "STAKED"] → show as "TON"
-  // Bemo: ["TON", "stTON"] or ["TON", "bmTON"] → already handled by getPoolMeta
+  // (native token renamed TON -> GRAM)
+  // Storm Trade: ["GRAM", "GRAM-SLP"] → show as "GRAM"
+  // KTON: ["GRAM", "KTON"] → show as "GRAM"
+  // Stakee: ["GRAM", "STAKED"] → show as "GRAM"
+  // Bemo: ["GRAM", "stTON"] or ["GRAM", "bmTON"] → already handled by getPoolMeta
   const lstProtocols = ["storm_trade", "kton", "stakee"];
   
   if (lstProtocols.includes(pool.protocol.toLowerCase())) {
@@ -142,9 +152,9 @@ function getAssetSymbol(pool: SwapCoffeePool): string {
       }
     }
     
-    // For KTON and Stakee, find "TON" (the underlying asset)
-    // These have patterns like ["TON", "KTON"] or ["TON", "STAKED"]
-    const tonAsset = symbols.find(s => s.toUpperCase() === "TON");
+    // For KTON and Stakee, find the native asset (TON/GRAM) as underlying
+    // These have patterns like ["GRAM", "KTON"] or ["GRAM", "STAKED"]
+    const tonAsset = symbols.find(s => isNativeSymbol(s));
     if (tonAsset) {
       return tonAsset;
     }
@@ -163,11 +173,11 @@ function getPoolMeta(pool: SwapCoffeePool): string | null {
     const symbols = pool.tokens.map(t => t.metadata.symbol);
     
     // For LST protocols, show the derivative token
-    // KTON: ["TON", "KTON"] → show "KTON"
-    // Stakee: ["TON", "STAKED"] → show "STAKED"
-    // Storm Trade: ["TON", "TON-SLP"] → show "TON-SLP"
-    // Bemo: ["TON", "stTON"] → show "stTON"
-    const tonIndex = symbols.findIndex(s => s.toUpperCase() === "TON");
+    // KTON: ["GRAM", "KTON"] → show "KTON"
+    // Stakee: ["GRAM", "STAKED"] → show "STAKED"
+    // Storm Trade: ["GRAM", "GRAM-SLP"] → show "GRAM-SLP"
+    // Bemo: ["GRAM", "stTON"] → show "stTON"
+    const tonIndex = symbols.findIndex(s => isNativeSymbol(s));
     if (tonIndex !== -1) {
       const derivativeIndex = tonIndex === 0 ? 1 : 0;
       return symbols[derivativeIndex];
@@ -286,9 +296,10 @@ export async function fetchSwapCoffeeYields(): Promise<YieldOpportunity[]> {
   // Filter out Moon - no longer live on TON
   const pools = allPools.filter(pool => {
     const protocol = pool.protocol.toLowerCase();
-    return protocol !== "evaa" && protocol !== "moon";
+    // Fiva temporarily disabled
+    return protocol !== "evaa" && protocol !== "moon" && !protocol.includes("fiva");
   });
-  console.log(`${pools.length} pools after excluding EVAA and Moon`);
+  console.log(`${pools.length} pools after excluding EVAA, Moon and Fiva`);
 
   // Transform to yield opportunities
   const yields = pools

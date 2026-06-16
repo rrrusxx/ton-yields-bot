@@ -206,9 +206,11 @@ const BTC_ASSETS = [
 
 /**
  * TON and related assets (LSTs, etc.)
+ * Note: the native token was renamed from TON to GRAM; both are recognized.
  */
 const TON_ASSETS = [
   "TON",
+  "GRAM",
   "TSTON",
   "STTON",
   "HTON",
@@ -217,15 +219,41 @@ const TON_ASSETS = [
 ];
 
 /**
+ * Tokens that contain "TON"/"GRAM" as a substring but are NOT native-correlated
+ * (independent, volatile tokens). These must be matched by EXACT symbol so that
+ * legit LSTs like tsTON/stTON are not affected.
+ */
+const TON_LOOKALIKE_ASSETS = [
+  "STON",
+  "GEMSTON",
+  "TONNEL",
+  "JETTON",
+  "NOT",
+];
+
+/**
+ * Returns true if a symbol merely looks like a TON asset (e.g. STON, GEMSTON)
+ * but should not be treated as TON-correlated.
+ */
+function isTonLookalike(asset: string): boolean {
+  return TON_LOOKALIKE_ASSETS.includes(asset.toUpperCase());
+}
+
+/**
  * Correlated pairs - assets that move together (no impermanent loss risk)
  */
 const CORRELATED_PAIRS: Record<AssetType, string[][]> = {
-  // TON and LSTs are correlated
+  // TON/GRAM and LSTs are correlated (TON token renamed to GRAM)
   TON: [
     ["TON", "TSTON"],
     ["TON", "STTON"],
     ["TON", "HTON"],
     ["TON", "BMTON"],
+    ["GRAM", "TSTON"],
+    ["GRAM", "STTON"],
+    ["GRAM", "HTON"],
+    ["GRAM", "BMTON"],
+    ["GRAM", "TON"],
     ["TSTON", "STTON"],
     ["TSTON", "HTON"],
     ["STTON", "HTON"],
@@ -390,9 +418,10 @@ export function isTonUsdtPool(symbol: string): boolean {
   asset1 = asset1.replace(/USD₮/g, "USDT");
   asset2 = asset2.replace(/USD₮/g, "USDT");
   
-  // Check for EXACT "TON" (not tsTON, TONNEL, STON, etc.)
-  const isTon1 = asset1 === "TON";
-  const isTon2 = asset2 === "TON";
+  // Check for EXACT "TON"/"GRAM" (not tsTON, TONNEL, STON, etc.)
+  // The native token was renamed from TON to GRAM.
+  const isTon1 = asset1 === "TON" || asset1 === "GRAM";
+  const isTon2 = asset2 === "TON" || asset2 === "GRAM";
   
   // Check for EXACT "USDT" or common variants (tsUSDT, USDT.e)
   const isUsdt1 = asset1 === "USDT" || asset1 === "TSUSDT" || asset1 === "USDT.E";
@@ -417,6 +446,13 @@ export function isCorrelatedPair(symbol: string, assetType: AssetType): boolean 
   }
   
   const [asset1, asset2] = pair;
+
+  // Reject TON-lookalike tokens (STON, GEMSTON, etc.) that merely contain "TON"
+  // as a substring — these are independent, volatile tokens, not LSTs.
+  if (assetType === "TON" && (isTonLookalike(asset1) || isTonLookalike(asset2))) {
+    return false;
+  }
+
   const correlatedPairs = CORRELATED_PAIRS[assetType];
   
   // Check if this pair exists in correlated pairs (order doesn't matter)
@@ -442,10 +478,10 @@ export function pairBelongsToCategory(symbol: string, assetType: AssetType): boo
   
   const [asset1, asset2] = pair;
   
-  // For TON category: both assets should be TON-related
+  // For TON category: both assets should be TON-related (excluding lookalikes)
   if (assetType === "TON") {
-    const isTon1 = TON_ASSETS.some(t => asset1.includes(t));
-    const isTon2 = TON_ASSETS.some(t => asset2.includes(t));
+    const isTon1 = !isTonLookalike(asset1) && TON_ASSETS.some(t => asset1.includes(t));
+    const isTon2 = !isTonLookalike(asset2) && TON_ASSETS.some(t => asset2.includes(t));
     return isTon1 && isTon2;
   }
   
