@@ -57,7 +57,10 @@ async function main(): Promise<void> {
     console.log("Posting yields now...");
     await triggerManualPost(bot);
     console.log("Done!");
-    return;
+    // Exit explicitly: the top-level Deno.cron registration keeps the runtime
+    // alive otherwise, causing one-shot runs (e.g. GitHub Actions) to hang
+    // until the job timeout instead of finishing immediately after posting.
+    Deno.exit(0);
   }
   
   if (args.includes("--test")) {
@@ -65,7 +68,7 @@ async function main(): Promise<void> {
     console.log("Sending test message...");
     await sendToChannel(bot, formatTestMessage());
     console.log("Test message sent!");
-    return;
+    Deno.exit(0);
   }
   
   // This is a pure broadcast bot — it only sends to a channel via cron.
