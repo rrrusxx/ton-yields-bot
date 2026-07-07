@@ -33,6 +33,8 @@ export interface YieldOpportunity {
   secondarySourceName?: string;
   /** Custom APY label shown in place of the 7-day average (e.g. "5y avg") */
   apyNote?: string;
+  /** Pool utilization as a percentage (0-100), e.g. for lending/borrow markets */
+  utilizationPct?: number;
 }
 
 /**

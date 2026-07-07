@@ -37,6 +37,14 @@ function lowTvlWarning(tvlUsd: number): string {
   return tvlUsd < LOW_TVL_THRESHOLD ? " ⚠️" : "";
 }
 
+function formatUtilization(utilizationPct?: number): string {
+  if (utilizationPct === undefined) {
+    return "";
+  }
+  const fire = utilizationPct > 95 ? " 🔥" : "";
+  return ` | UR ${utilizationPct.toFixed(1)}%${fire}`;
+}
+
 /**
  * Format TVL in human-readable format
  * e.g., 1500000 -> "$1.5M"
@@ -118,7 +126,7 @@ function formatYieldLine(
   // Format TVL (with low-liquidity warning if applicable)
   const tvlText = formatTvl(yield_.tvlUsd);
   
-  return `${prefix} ${assetText}: ${apyText} | ${tvlText}${lowTvlWarning(yield_.tvlUsd)}`;
+  return `${prefix} ${assetText}: ${apyText}${formatUtilization(yield_.utilizationPct)} | ${tvlText}${lowTvlWarning(yield_.tvlUsd)}`;
 }
 
 /**
@@ -278,7 +286,7 @@ function formatTopYieldsSection(yields: YieldOpportunity[], averages: Map<YieldO
     }
 
     const protocolLink = formatProtocolLink(y.source, y.sourceUrl);
-    contentLines.push(`${rankEmoji} ${protocolLink} ${assetText}: ${apyText} | ${formatTvl(y.tvlUsd)}${lowTvlWarning(y.tvlUsd)}`);
+    contentLines.push(`${rankEmoji} ${protocolLink} ${assetText}: ${apyText}${formatUtilization(y.utilizationPct)} | ${formatTvl(y.tvlUsd)}${lowTvlWarning(y.tvlUsd)}`);
   });
 
   result.push(`<blockquote expandable>${contentLines.join("\n")}</blockquote>`);
@@ -445,8 +453,8 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   // Footer
   sections.push(SEPARATOR);
   sections.push("");
-  sections.push("<i>APY (7d avg) ↑↓ | TVL · ⚠️ low TVL (&lt;$10K)</i>");
-  sections.push(`<i>📊 <a href="https://defillama.com/">DefiLlama</a> · <a href="https://merkl.xyz/">Merkl</a> · <a href="https://goldsky.com/">Goldsky</a> · <a href="https://swap.coffee/">Swap.coffee</a> · <a href="https://palette.finance/">Palette</a> · ${getCurrentTimeUTC()}</i>`);
+  sections.push("<i>APY (7d avg) ↑↓ | UR = Utilisation Rate (🔥 if &gt;95%) | TVL · ⚠️ low TVL (&lt;$10K)</i>");
+  sections.push(`<i>📊 <a href="https://defillama.com/">DefiLlama</a> · <a href="https://merkl.xyz/">Merkl</a> · <a href="https://goldsky.com/">Goldsky</a> · <a href="https://swap.coffee/">Swap.coffee</a> · <a href="https://palette.finance/">Palette</a> · <a href="https://giftcredit.app/">GTC</a> · ${getCurrentTimeUTC()}</i>`);
   
   return sections.join("\n");
 }

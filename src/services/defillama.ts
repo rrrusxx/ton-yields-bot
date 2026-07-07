@@ -335,11 +335,12 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   const { fetchEthenaYields } = await import("./ethena.ts");
   const { fetchSwapCoffeeYields } = await import("./swapcoffee.ts");
   const { fetchMidasVaultYield } = await import("./midas.ts");
+  const { fetchGtcYields } = await import("./gtc.ts");
   const { fetchPaletteData, applyPaletteOverrides } = await import("./palette.ts");
   const { fetchEulerYields } = await import("./euler.ts");
 
   // Fetch from all sources in parallel
-  const [defiLlamaYields, merklYields, morphoYields, yieldFiYields, ethenaYields, swapCoffeeYields, midasYield, paletteData, eulerYields] = await Promise.all([
+  const [defiLlamaYields, merklYields, morphoYields, yieldFiYields, ethenaYields, swapCoffeeYields, midasYield, gtcYields, paletteData, eulerYields] = await Promise.all([
     fetchDefiLlamaYields(),
     fetchMerklYields(),
     fetchMorphoYields(),
@@ -347,6 +348,7 @@ export async function fetchTonYields(): Promise<GroupedYields> {
     fetchEthenaYields(),
     fetchSwapCoffeeYields(),
     fetchMidasVaultYield(),
+    fetchGtcYields(),
     fetchPaletteData(),
     fetchEulerYields(),
   ]);
@@ -410,6 +412,11 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   // Merge Midas vault (custom hardcoded yield) into STABLE
   if (midasYield) {
     defiLlamaYields.STABLE.push(midasYield);
+  }
+
+  // Merge GTC lending vaults (GRAM → TON, USDT → STABLE)
+  for (const yield_ of gtcYields) {
+    defiLlamaYields[yield_.assetType].push(yield_);
   }
 
   // Apply Palette Finance APR overrides (more accurate values for covered

@@ -23,6 +23,8 @@ export const PROTOCOL_URLS: Record<string, string> = {
   
   // Yield Protocols
   "fiva": "https://t.me/fiva_yield_bot",
+  "gtc": "https://t.me/GiftToCreditBot/app?startapp=ref_NcB5ZyHKtq",
+  "gift_to_credit": "https://t.me/GiftToCreditBot/app?startapp=ref_NcB5ZyHKtq",
   "daolama": "https://daolama.co/",
   "dao_lama_vault": "https://daolama.co/",
   "yieldfi": "https://t.me/yieldfi_bot",
@@ -520,6 +522,8 @@ export function formatProtocolName(project: string): string {
     "curve": "Curve",
     "curve-dex": "Curve",
     "fiva": "FIVA",
+    "gtc": "GTC",
+    "gift_to_credit": "GTC",
     "daolama": "Daolama",
     "swap-coffee": "Swap.coffee",
     "swap.coffee": "Swap.coffee",
