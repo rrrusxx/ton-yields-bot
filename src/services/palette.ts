@@ -71,16 +71,16 @@ const OVERRIDE_RULES: OverrideRule[] = [
     match: (y) => eq(y.source, "Tonstakers"),
   },
   {
-    key: "hTON",
+    key: "hGRAM",
     table: "aprBySymbol",
-    label: "Hipo (hTON)",
+    label: "Hipo (hGRAM)",
     match: (y) => eq(y.source, "Hipo"),
   },
   {
-    key: "bmTON",
+    key: "bmGRAM",
     table: "aprBySymbol",
-    label: "Bemo (bmTON)",
-    match: (y) => eq(y.source, "Bemo") && (has(y.poolMeta, "bmTON") || has(y.asset, "bmTON")),
+    label: "Bemo (bmGRAM)",
+    match: (y) => eq(y.source, "Bemo") && (has(y.poolMeta, "bmTON") || has(y.poolMeta, "bmGRAM") || has(y.asset, "bmTON") || has(y.asset, "bmGRAM")),
   },
   {
     key: "KTON",
