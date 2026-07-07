@@ -7,7 +7,7 @@ const COINGECKO_PRICE_URL =
   "https://api.coingecko.com/api/v3/simple/price?ids=midas-mre7yield&vs_currencies=usd";
 
 // Hardcoded APY - 5-year average annual return for Midas Re7 USDT product
-const MIDAS_APY = 17.98;
+const MIDAS_APY = 8.04;
 const TELEGRAM_WALLET_URL = "https://bit.ly/Earn_With_USDT";
 
 interface TonApiJettonResponse {

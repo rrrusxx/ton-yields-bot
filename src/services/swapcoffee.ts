@@ -296,10 +296,14 @@ export async function fetchSwapCoffeeYields(): Promise<YieldOpportunity[]> {
   // Filter out Moon - no longer live on TON
   const pools = allPools.filter(pool => {
     const protocol = pool.protocol.toLowerCase();
-    // Fiva temporarily disabled
-    return protocol !== "evaa" && protocol !== "moon" && !protocol.includes("fiva");
+    // Fiva and Daolama temporarily disabled
+    return protocol !== "evaa" &&
+      protocol !== "moon" &&
+      !protocol.includes("fiva") &&
+      !protocol.includes("daolama") &&
+      !protocol.includes("dao_lama");
   });
-  console.log(`${pools.length} pools after excluding EVAA, Moon and Fiva`);
+  console.log(`${pools.length} pools after excluding EVAA, Moon, Fiva and Daolama`);
 
   // Transform to yield opportunities
   const yields = pools

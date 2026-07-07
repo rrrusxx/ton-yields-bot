@@ -272,6 +272,7 @@ const SWAP_COFFEE_PROTOCOLS = [
  */
 const DISABLED_PROTOCOLS = [
   "fiva",
+  "daolama", // Project closed — temporarily hidden
 ];
 
 /**

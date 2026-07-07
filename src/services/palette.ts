@@ -123,16 +123,7 @@ const OVERRIDE_RULES: OverrideRule[] = [
     label: "EVAA USDT LP pool",
     match: (y) => eq(y.source, "EVAA") && eq(y.asset, "USDT") && has(y.poolMeta, "LP"),
   },
-  // Daolama: two native pools share the same source/asset/meta; the higher-TVL
-  // one is the Main Pool (the other is "Gifts Pool", left untouched).
-  // Native token renamed TON -> GRAM, so match either.
-  {
-    key: "daolama_main_pool",
-    table: "aprBySource",
-    label: "Daolama Main Pool (highest TVL)",
-    match: (y) => eq(y.source, "Daolama") && (eq(y.asset, "TON") || eq(y.asset, "GRAM")),
-    selector: highestTvl,
-  },
+  // Daolama override removed — project closed (Jul 2026)
 ];
 
 /**
