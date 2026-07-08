@@ -6,8 +6,7 @@ const TONAPI_JETTON_URL =
 const COINGECKO_PRICE_URL =
   "https://api.coingecko.com/api/v3/simple/price?ids=midas-mre7yield&vs_currencies=usd";
 
-// Hardcoded APY - 5-year average annual return for Midas Re7 USDT product
-const MIDAS_APY = 8.04;
+const MIDAS_APYS_URL = "https://api-prod.midas.app/api/data/apys";
 const TELEGRAM_WALLET_URL = "https://bit.ly/Earn_With_USDT";
 
 interface TonApiJettonResponse {
@@ -21,6 +20,33 @@ interface CoinGeckoPriceResponse {
   "midas-mre7yield"?: {
     usd?: number;
   };
+}
+
+interface MidasApysResponse {
+  mre7?: number;
+}
+
+/**
+ * Fetch the 7-day trailing APY for the mRe7 product from Midas API.
+ * Returns APY as a percentage (e.g. 0.0423 → 4.23%).
+ */
+async function fetchMidasApy(): Promise<number> {
+  const response = await fetch(MIDAS_APYS_URL, {
+    signal: AbortSignal.timeout(10000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Midas APY API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data: MidasApysResponse = await response.json();
+  const apyDecimal = data.mre7;
+
+  if (apyDecimal === null || apyDecimal === undefined) {
+    throw new Error("Midas APY API returned no mre7 value");
+  }
+
+  return apyDecimal * 100;
 }
 
 /**
@@ -67,22 +93,22 @@ async function fetchMidasPrice(): Promise<number> {
 }
 
 /**
- * Fetch the Midas Re7 USDT vault as a hardcoded YieldOpportunity.
- * APY is set to the 5-year average annual return of the underlying Midas product.
- * TVL is calculated dynamically: mRe7YIELD total supply × current USD price.
+ * Fetch the Midas Re7 USDT vault yield opportunity.
+ * APY comes from Midas's 7-day trailing rate (mre7); TVL is supply × price.
  */
 export async function fetchMidasVaultYield(): Promise<YieldOpportunity | null> {
-  console.log("Fetching Midas Re7 USDT vault TVL...");
+  console.log("Fetching Midas Re7 USDT vault (APY + TVL)...");
 
   try {
-    const [supply, price] = await Promise.all([
+    const [apy, supply, price] = await Promise.all([
+      fetchMidasApy(),
       fetchJettonSupply(),
       fetchMidasPrice(),
     ]);
 
     const tvlUsd = supply * price;
     console.log(
-      `Midas vault: supply=${supply.toFixed(2)} mRe7YIELD, price=$${price.toFixed(4)}, TVL=$${tvlUsd.toFixed(0)}`,
+      `Midas vault: APY=${apy.toFixed(2)}% (7d trailing), supply=${supply.toFixed(2)} mRe7YIELD, price=$${price.toFixed(4)}, TVL=$${tvlUsd.toFixed(0)}`,
     );
 
     return {
@@ -91,11 +117,11 @@ export async function fetchMidasVaultYield(): Promise<YieldOpportunity | null> {
       sourceUrl: TELEGRAM_WALLET_URL,
       asset: "Midas USDT vault",
       poolMeta: null,
-      apyBase: MIDAS_APY,
+      apyBase: apy,
       apyReward: null,
-      apyTotal: MIDAS_APY,
+      apyTotal: apy,
       tvlUsd,
-      apyNote: "5y avg",
+      apyNote: "7d trailing",
     };
   } catch (error) {
     console.error("Failed to fetch Midas vault data:", error);

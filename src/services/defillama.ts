@@ -409,7 +409,7 @@ export async function fetchTonYields(): Promise<GroupedYields> {
     }
   }
   
-  // Merge Midas vault (custom hardcoded yield) into STABLE
+  // Merge Midas vault (Telegram Wallet; APY from Midas API) into STABLE
   if (midasYield) {
     defiLlamaYields.STABLE.push(midasYield);
   }
