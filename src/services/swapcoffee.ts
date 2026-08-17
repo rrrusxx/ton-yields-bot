@@ -41,6 +41,7 @@ const PROTOCOL_NAME_MAP: Record<string, string> = {
   "dao_lama_vault": "Daolama",
   "moon": "Moon",
   "tonco": "Tonco",
+  "tonco_v2": "Tonco",
   "bidask": "BidAsk",
 };
 
