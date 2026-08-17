@@ -337,10 +337,11 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   const { fetchMidasVaultYield } = await import("./midas.ts");
   const { fetchGtcYields } = await import("./gtc.ts");
   const { fetchPaletteData, applyPaletteOverrides } = await import("./palette.ts");
-  const { fetchEulerYields } = await import("./euler.ts");
+  // Euler temporarily disabled — re-enable by restoring the fetchEulerYields
+  // import/call and the merge loop below.
 
   // Fetch from all sources in parallel
-  const [defiLlamaYields, merklYields, morphoYields, yieldFiYields, ethenaYields, swapCoffeeYields, midasYield, gtcYields, paletteData, eulerYields] = await Promise.all([
+  const [defiLlamaYields, merklYields, morphoYields, yieldFiYields, ethenaYields, swapCoffeeYields, midasYield, gtcYields, paletteData] = await Promise.all([
     fetchDefiLlamaYields(),
     fetchMerklYields(),
     fetchMorphoYields(),
@@ -350,7 +351,6 @@ export async function fetchTonYields(): Promise<GroupedYields> {
     fetchMidasVaultYield(),
     fetchGtcYields(),
     fetchPaletteData(),
-    fetchEulerYields(),
   ]);
   
   // Merge Merkl yields into the grouped structure
@@ -371,15 +371,8 @@ export async function fetchTonYields(): Promise<GroupedYields> {
     }
   }
 
-  // Merge Euler yields into the grouped structure
-  for (const yield_ of eulerYields) {
-    if (yield_.isTonUsdtPool) {
-      defiLlamaYields.TON_USDT.push(yield_);
-    } else {
-      defiLlamaYields[yield_.assetType].push(yield_);
-    }
-  }
-  
+  // Euler merge intentionally removed — temporarily disabled per request.
+
   // Merge YieldFi yields into the grouped structure
   for (const yield_ of yieldFiYields) {
     if (yield_.isTonUsdtPool) {
