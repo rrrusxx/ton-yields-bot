@@ -5,6 +5,40 @@ All notable changes to TON Yields Bot will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-11-20
+
+Hotfix after the November 2026 audit. Changes between 1.3.0 and 1.4.0 (Swap.coffee, Palette, GTC, the Midas vault, the GitHub Actions schedule and others) were not recorded here; see the git history.
+
+### Fixed
+- **Hipo is back in the post.** Swap.coffee renamed the token from hTON to hGRAM, and the exact-ticker allowlist (`NATIVE_TON_ASSETS`) only knew HTON, so the row was silently dropped from 2026-11-08. The allowlist now holds both ticker generations: TSGRAM, STGRAM, HGRAM, BMGRAM and WGRAM next to the old names.
+- **TOP-5 no longer shows dust or stale pools.** A row needs a known TVL of at least $10K, an APY above 0 and at most 100%, and a protocol that is not marked as hacked. Each protocol gets one place per asset class, so Bemo v1 (stTON) and v2 (bmTON) at the same rate take a single place. Rows that fail these rules stay in their own section.
+- **Ethena tsUSDe shows its TVL on TON** (about $1.9M, DefiLlama "Ethena tsUSDe") instead of the global sUSDe TVL on Ethereum (about $1.2B).
+- **GTC GRAM vault TVL is in USD.** The GTC API reports it in GRAM; it is now converted with the GRAM price (DefiLlama coins API, CoinGecko as fallback). Without a price the row keeps its APY and shows no TVL.
+- **HTML escaping.** Every third-party string in the post (pool, vault and protocol names, links) is escaped, so a "<" or "&" in a name can no longer make Telegram reject the post or inject a link.
+- **Hipo and Storm Trade vault TVLs come from Palette.** Swap.coffee values Hipo at hGRAM supply times the GRAM price (about 17% too low, since one hGRAM is worth about 1.2 GRAM) and counts only the free balance of each Storm Trade vault, leaving out the funds locked against open trades (9-20% too low). The Storm Trade GRAM vault APR now also comes from Palette (Storm's own current rate), as the USDT vault's already did. If Palette is down, the Swap.coffee value stays.
+- **7-day averages use only the last 7 days.** Before, the "7d" value averaged the last 7 saved snapshots, however old (after a pause, or with an old local KV file, it mixed in rates from weeks or months ago).
+- Swap.coffee numbers that arrive as strings, including "NaN", are converted. A pool without a real TVL is skipped with a warning. A non-numeric APR is kept so a Palette override can still replace it; rows whose APY is still not a number after the overrides are dropped with a warning, instead of crashing the formatter.
+- GTC vaults are classified by their currency id or their symbol, so a rename ("ton" to "gram") or an upper-case id no longer drops a vault, and the vault list is read before the GRAM price lookup finishes, so a slow price service cannot drop both GTC rows.
+- Third-party names are kept on one line (line breaks and control characters become spaces) and shortened to 64 characters, so a name cannot fake extra rows or push the post past Telegram's 4,096-character limit.
+- `link_preview_options` replaces the deprecated `disable_web_page_preview`, so `deno check` passes again.
+- The date in the post header is computed in UTC.
+
+### Changed
+- **Affluent is marked "🚨 Hacked"** (unbacked mint of about $1.05M between 2026-09-30 and 2026-10-16). Its rows stay visible with their APY, but without the frozen TVL, at the end of their section and never in the TOP-5. The footer legend explains the mark.
+- The Palette override for the Affluent USDT vault was dropped.
+- The footer lists DefiLlama, Swap.coffee, Palette and GTC. TAC sources (Merkl, Goldsky) are gone from it; DeDust, read from its own API, is not credited separately (owner's choice).
+- **Ston.fi GRAM-USDT pools are labelled v1 and v2** and read "GRAM-USDT" like the other pools of the section. Both used to read "USDT-GRAM (USDT)", shared one 7-day history and showed the same 7d value; their 7d averages start again from this release. Other Ston.fi rows (GRAM-tsTON) keep their label and history.
+
+### Removed
+- TAC sources: Merkl (with Feather Zone), Morpho via the Goldsky subgraph, Euler and YieldFi. They no longer returned live data (Morpho returned stale rates). Their integration docs are kept with a removal note.
+- The Midas USDT vault shown as "Telegram Wallet" (now Walt): closed to new deposits since 2026-08-14.
+- The top-level `Deno.cron` left over from Deno Deploy, which caused duplicate posts, and the `--unstable-cron` task flags. Scheduling lives in `.github/workflows/daily-post.yml`.
+- The unused `ethers` dependency and the unused `dailyPostHour` setting.
+
+### Added
+- **DeDust GRAM-USDT pools** in the GRAM-USDT section, from DeDust's own API (the source DefiLlama's DeDust adaptor reads). Swap.coffee reports an APR of 0 for every DeDust pool and DefiLlama's DeDust rows were excluded, so DeDust never appeared before. Rows are labelled like DeDust's app ("Classic 0.10%", "CPMM v2 0.10%"). Classic and Stable pools add fees to the pool, so their APY is the fee APR compounded daily (about 1 point above the APR in DeDust's app, equal to DefiLlama); CPMM v2 pools pay fees separately, so their APY equals the app's APR (DefiLlama compounds them too and shows them higher). As on DefiLlama's DeDust listing, only verified pools with at least $10K TVL are shown, and only GRAM-USDT or impermanent-loss-free pairs.
+- Unit tests for the ticker allowlist, the TOP-5 rules, HTML escaping, Palette overrides, GTC vaults, Swap.coffee parsing, DeDust pools and 7-day averages (`deno task test`).
+
 ## [1.3.0] - 2026-01-13
 
 ### Added
@@ -124,14 +158,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned
-- Historical APY tracking (7-day averages)
-- APY delta vs yesterday
-- TON wallet yields (Telegram Wallet, MyTonWallet, Tonkeeper)
-- Carbon DeFi DEX exploration
-- Alert system for APY changes
-- ETH and TAC asset clusters
-- Web dashboard with Fresh
+See "Status and Plan" in [ROADMAP.md](ROADMAP.md).
 
 ---
 

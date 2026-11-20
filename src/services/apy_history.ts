@@ -20,21 +20,23 @@ interface PoolHistory {
 const KV_PREFIX = ["apy_history"];
 const MAX_HISTORY_DAYS = 30; // Keep last 30 days
 const MIN_DAYS_FOR_AVERAGE = 3; // Minimum days needed to show average
+const AVERAGE_WINDOW_DAYS = 7; // "7d average" = snapshots dated within the last 7 days, today included
 
 /**
  * Open Deno KV database
- * In production (Deno Deploy): uses cloud KV (no path needed)
- * In development: uses local file in ./data/kv.db
+ * Legacy Deno Deploy (DENO_DEPLOYMENT_ID set): cloud KV.
+ * Everywhere else, including GitHub Actions production: ./data/kv.db
+ * (carried between runs by actions/cache).
  */
 async function getKv(): Promise<Deno.Kv> {
-  // Check if we're in Deno Deploy production environment
+  // Legacy Deno Deploy sets DENO_DEPLOYMENT_ID
   const isProduction = Deno.env.get("DENO_DEPLOYMENT_ID") !== undefined;
   
   if (isProduction) {
-    // Production: Use cloud KV (default)
+    // Deno Deploy: cloud KV (default)
     return await Deno.openKv();
   } else {
-    // Development: Use local file-based KV
+    // GitHub Actions and local runs: file-based KV
     try {
       await Deno.mkdir("./data", { recursive: true });
     } catch {
@@ -138,27 +140,44 @@ export async function saveApySnapshot(pool: YieldOpportunity): Promise<void> {
 }
 
 /**
+ * First date (YYYY-MM-DD, UTC) of the averaging window that ends on `today`.
+ */
+function averageWindowStart(today: string): string {
+  const start = new Date(`${today}T00:00:00Z`);
+  start.setUTCDate(start.getUTCDate() - (AVERAGE_WINDOW_DAYS - 1));
+  return start.toISOString().split("T")[0];
+}
+
+/**
+ * Average APY of the snapshots dated within the last AVERAGE_WINDOW_DAYS days
+ * (today included), or null when fewer than MIN_DAYS_FOR_AVERAGE fall inside.
+ * Older snapshots never count: after a pause in posting, or with an old local
+ * KV file, "the last 7 snapshots" would otherwise mix in weeks-old rates while
+ * the post still says "7d".
+ */
+export function averageOfRecentSnapshots(
+  snapshots: ReadonlyArray<{ date: string; apy: number }>,
+  today: string,
+): number | null {
+  const from = averageWindowStart(today);
+  const recent = snapshots.filter((s) =>
+    s.date >= from && s.date <= today && Number.isFinite(s.apy)
+  );
+  if (recent.length < MIN_DAYS_FOR_AVERAGE) {
+    return null;
+  }
+  return recent.reduce((sum, s) => sum + s.apy, 0) / recent.length;
+}
+
+/**
  * Calculate 7-day average APY for a pool
- * Returns average APY or null if not enough history
+ * Returns average APY or null if not enough recent history
  */
 export async function calculate7DayAverage(pool: YieldOpportunity): Promise<number | null> {
   try {
-    const poolId = generatePoolId(pool);
-    const history = await loadPoolHistory(poolId);
-    
-    if (history.snapshots.length < MIN_DAYS_FOR_AVERAGE) {
-      return null;
-    }
-    
-    // Get last 7 days of snapshots
-    const last7Days = history.snapshots.slice(0, 7);
-    
-    // Calculate average
-    const sum = last7Days.reduce((acc, snap) => acc + snap.apy, 0);
-    const average = sum / last7Days.length;
-    
-    return average;
-  } catch (error) {
+    const history = await loadPoolHistory(generatePoolId(pool));
+    return averageOfRecentSnapshots(history.snapshots, getTodayDate());
+  } catch (_error) {
     return null;
   }
 }

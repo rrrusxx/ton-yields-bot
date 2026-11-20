@@ -213,15 +213,28 @@ const BTC_ASSETS = [
  * merely contain "TON"/"GRAM" as a substring — e.g. STON, GEMSTON, sTONks,
  * TONNEL, JETTON — are never treated as native and grouped into the GRAM
  * section. Add a new symbol here only if it is a genuine TON LST.
+ *
+ * Keep both ticker generations. After the TON -> GRAM rename (June 2026)
+ * providers switch tickers one by one: Swap.coffee started returning Hipo as
+ * GRAM/hGRAM in November 2026, and the row silently disappeared because only
+ * HTON was listed here. The GRAM-era names below cover the renames that have
+ * not happened yet.
  */
 const NATIVE_TON_ASSETS = new Set([
+  // Pre-rename tickers
   "TON",
-  "GRAM",
   "TSTON",
   "STTON",
   "HTON",
   "BMTON",
   "WTON",
+  // GRAM-era tickers
+  "GRAM",
+  "TSGRAM",
+  "STGRAM",
+  "HGRAM",
+  "BMGRAM",
+  "WGRAM",
 ]);
 
 /**
@@ -232,10 +245,31 @@ function isNativeTonAsset(asset: string): boolean {
 }
 
 /**
+ * Protocols with a confirmed exploit. Their rows stay in the post (the owner's
+ * rule is to flag risk, not hide it) but are marked "🚨 Hacked", shown without
+ * TVL (the TVL that data providers report is frozen after the exploit) and
+ * never enter the TOP-5. Keys are display names (YieldOpportunity.source).
+ */
+const HACKED_PROTOCOLS: ReadonlySet<string> = new Set([
+  // Unbacked mint of about $1.05M between 2026-09-30 and 2026-10-16
+  // (DefiLlama hacks database); protocol TVL fell 91% on 2026-11-14.
+  "Affluent",
+]);
+
+/**
+ * True for protocols listed in HACKED_PROTOCOLS.
+ */
+export function isHackedProtocol(source: string): boolean {
+  return HACKED_PROTOCOLS.has(source);
+}
+
+/**
  * Correlated pairs - assets that move together (no impermanent loss risk)
  */
 const CORRELATED_PAIRS: Record<AssetType, string[][]> = {
-  // TON/GRAM and LSTs are correlated (TON token renamed to GRAM)
+  // TON/GRAM and LSTs are correlated (TON token renamed to GRAM).
+  // Reference only: isCorrelatedPair and pairBelongsToCategory decide TON
+  // pairs with NATIVE_TON_ASSETS, so new LST tickers belong there.
   TON: [
     ["TON", "TSTON"],
     ["TON", "STTON"],

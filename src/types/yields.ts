@@ -27,10 +27,12 @@ export interface YieldOpportunity {
   tvlUsd: number;
   /** Flag for TON-USDT pools (has impermanent loss risk) */
   isTonUsdtPool?: boolean;
-  /** Secondary platform URL (e.g. Telegram Wallet link for Morpho v2 vaults) */
-  secondarySourceUrl?: string;
-  /** Secondary platform display name */
-  secondarySourceName?: string;
+  /**
+   * True when the TVL is unknown or not trustworthy (for example, the GRAM
+   * price needed to convert it to USD was unavailable). The post then shows
+   * no TVL for the row, and the row cannot enter the TOP-5.
+   */
+  tvlHidden?: boolean;
   /** Custom APY label shown in place of the 7-day average (e.g. "5y avg") */
   apyNote?: string;
   /** Pool utilization as a percentage (0-100), e.g. for lending/borrow markets */

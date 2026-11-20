@@ -59,17 +59,18 @@ interface SwapCoffeeToken {
   };
 }
 
-interface SwapCoffeePool {
+export interface SwapCoffeePool {
   address: string;
   protocol: string;
   is_trusted: boolean;
   tokens: SwapCoffeeToken[];
+  // Numbers can arrive as strings, including "NaN" (seen in Nov 2026)
   pool_statistics: {
-    tvl_usd: number;
-    volume_usd: number;
-    apr: number;
-    lp_apr: number;
-    boost_apr: number;
+    tvl_usd: number | string;
+    volume_usd: number | string;
+    apr: number | string;
+    lp_apr: number | string;
+    boost_apr: number | string;
   };
   pool?: {
     amm_type?: string;
@@ -161,14 +162,33 @@ function getAssetSymbol(pool: SwapCoffeePool): string {
     }
   }
   
-  // LP pool
-  return symbols.join("-");
+  // LP pool. GRAM-USDT pools always read "GRAM-USDT" (Swap.coffee sends Ston.fi's
+  // as USDT/GRAM), the same order DeDust and Tonco rows use.
+  const joined = symbols.join("-");
+  if (symbols.length === 2 && isTonUsdtPool(joined) && !isNativeSymbol(symbols[0])) {
+    return `${symbols[1]}-${symbols[0]}`;
+  }
+  return joined;
 }
+
+/** Version labels for DEX protocols that run several versions side by side */
+const DEX_VERSION_LABELS: Record<string, string> = {
+  stonfi: "v1",
+  stonfi_v2: "v2",
+};
 
 /**
  * Get pool metadata for display
  */
 function getPoolMeta(pool: SwapCoffeePool): string | null {
+  // Ston.fi GRAM-USDT pools are labelled by protocol version: the pair exists
+  // on v1 and v2, and both pools used to be labelled "(USDT)" and share one
+  // 7-day history. Other Ston.fi pools keep their label (and their history).
+  const versionLabel = DEX_VERSION_LABELS[pool.protocol.toLowerCase()];
+  if (versionLabel && isTonUsdtPool(pool.tokens.map((t) => t.metadata.symbol).join("-"))) {
+    return versionLabel;
+  }
+
   // For liquid staking, show the derivative token
   if (pool.tokens.length === 2) {
     const symbols = pool.tokens.map(t => t.metadata.symbol);
@@ -205,22 +225,37 @@ function getPoolMeta(pool: SwapCoffeePool): string | null {
 /**
  * Transform Swap Coffee pool to YieldOpportunity
  */
-function transformSwapCoffeePool(pool: SwapCoffeePool): YieldOpportunity | null {
+export function transformSwapCoffeePool(pool: SwapCoffeePool): YieldOpportunity | null {
   // Skip untrusted pools
   if (!pool.is_trusted) {
     return null;
   }
 
+  // Coerce statistics to numbers (the API can send strings, including "NaN").
+  // A pool without a real TVL is skipped.
+  const tvlUsd = Number(pool.pool_statistics.tvl_usd);
+  if (!Number.isFinite(tvlUsd)) {
+    const symbols = pool.tokens.map((t) => t.metadata.symbol).join("/");
+    console.warn(`  ↳ Swap.coffee ${pool.protocol} ${symbols}: skipped, TVL is not a number (${pool.pool_statistics.tvl_usd})`);
+    return null;
+  }
+  // A non-numeric APR stays NaN on purpose: a Palette override can still
+  // replace it. fetchTonYields drops rows whose APY is still not a number
+  // after the overrides.
+  const apr = Number(pool.pool_statistics.apr);
+  const lpApr = Number(pool.pool_statistics.lp_apr);
+  const boostApr = Number(pool.pool_statistics.boost_apr);
+
   // Skip pools with very low TVL (< $100)
-  if (pool.pool_statistics.tvl_usd < 100) {
+  if (tvlUsd < 100) {
     return null;
   }
 
   // Skip pools with very low APR (< 0.05% for most, but keep EVAA TSUSDE even if low)
-  const isEvaaUsde = pool.protocol === "evaa" && 
+  const isEvaaUsde = pool.protocol === "evaa" &&
     pool.tokens.some(t => t.metadata.symbol.toUpperCase().includes("USDE"));
-  
-  if (pool.pool_statistics.apr < 0.05 && !isEvaaUsde) {
+
+  if (apr < 0.05 && !isEvaaUsde) {
     return null;
   }
 
@@ -233,18 +268,18 @@ function transformSwapCoffeePool(pool: SwapCoffeePool): YieldOpportunity | null 
   }
 
   // Skip memecoins and small cap tokens (very high APR is usually unsustainable)
-  if (pool.pool_statistics.apr > 100 && pool.pool_statistics.tvl_usd < 10000) {
+  if (apr > 100 && tvlUsd < 10000) {
     return null;
   }
 
   const protocolName = PROTOCOL_NAME_MAP[pool.protocol] || pool.protocol;
-  
+
   // Split APR into base and rewards
   // lp_apr = base trading fees
   // boost_apr = additional rewards
-  const apyBase = pool.pool_statistics.lp_apr || 0;
-  const apyReward = pool.pool_statistics.boost_apr || 0;
-  const apyTotal = pool.pool_statistics.apr;
+  const apyBase = Number.isFinite(lpApr) ? lpApr : 0;
+  const apyReward = Number.isFinite(boostApr) ? boostApr : 0;
+  const apyTotal = apr;
   
   // Check if this is a TON-USDT pool
   const isTonUsdt = isTonUsdtPool(asset);
@@ -258,7 +293,7 @@ function transformSwapCoffeePool(pool: SwapCoffeePool): YieldOpportunity | null 
     apyBase,
     apyReward: apyReward > 0 ? apyReward : null,
     apyTotal,
-    tvlUsd: pool.pool_statistics.tvl_usd,
+    tvlUsd,
     isTonUsdtPool: isTonUsdt,
   };
 }
@@ -295,16 +330,18 @@ export async function fetchSwapCoffeeYields(): Promise<YieldOpportunity[]> {
 
   // Filter out EVAA pools - we use DefiLlama for complete EVAA coverage (includes USDE)
   // Filter out Moon - no longer live on TON
+  // Filter out DeDust - its APR is always 0 here; dedust.ts reads DeDust's own API
   const pools = allPools.filter(pool => {
     const protocol = pool.protocol.toLowerCase();
     // Fiva and Daolama temporarily disabled
     return protocol !== "evaa" &&
       protocol !== "moon" &&
+      !protocol.startsWith("dedust") &&
       !protocol.includes("fiva") &&
       !protocol.includes("daolama") &&
       !protocol.includes("dao_lama");
   });
-  console.log(`${pools.length} pools after excluding EVAA, Moon, Fiva and Daolama`);
+  console.log(`${pools.length} pools after excluding EVAA, Moon, DeDust, Fiva and Daolama`);
 
   // Transform to yield opportunities
   const yields = pools

@@ -53,9 +53,15 @@ export const config = {
   /** Chain to filter (TON blockchain) */
   chain: "TON",
   
-  /** Minimum TVL to include in results (filter out dust) */
+  /** Minimum TVL to include DefiLlama and DeDust pools in results (filter out dust) */
   minTvlUsd: 10000,
-  
-  /** Daily post time in UTC (9:00 AM) */
-  dailyPostHour: 9,
+
+  /**
+   * TOP-5 eligibility. Rows below this TVL stay in their section with the
+   * ⚠️ low-TVL flag but never enter the TOP-5 (owner's choice, Nov 2026).
+   */
+  top5MinTvlUsd: 10_000,
+
+  /** TOP-5 eligibility: an APY above this (in %) is treated as a data glitch */
+  top5MaxApy: 100,
 } as const;

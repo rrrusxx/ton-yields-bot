@@ -1,25 +1,13 @@
 import { config, validateConfig } from "./config.ts";
 import { createBot, sendToChannel } from "./bot.ts";
-import { postDailyYields, triggerManualPost } from "./scheduler.ts";
+import { triggerManualPost } from "./scheduler.ts";
 import { fetchTonYields } from "./services/defillama.ts";
 import { formatChannelMessage, formatTestMessage } from "./formatters/message.ts";
 
-
-// ---------------------------------------------------------------------------
-// TOP-LEVEL cron registration — Deno Deploy requires Deno.cron at top level,
-// not inside any function. The bot is created lazily inside the callback so
-// env vars are guaranteed to be available at runtime.
-// ---------------------------------------------------------------------------
-Deno.cron("daily-yield-post", "0 9 * * *", async () => {
-  console.log("Cron job triggered: daily-yield-post");
-  try {
-    validateConfig();
-    const bot = createBot();
-    await postDailyYields(bot);
-  } catch (error) {
-    console.error("Cron job failed:", error);
-  }
-});
+// Scheduling lives outside the code: the GitHub Actions workflow
+// (.github/workflows/daily-post.yml) runs `deno task post` once a day.
+// The top-level Deno.cron left over from Deno Deploy was removed on
+// 2026-11-20; it had caused duplicate posts.
 
 /**
  * Main entry point for the TON Yields Bot
@@ -57,9 +45,8 @@ async function main(): Promise<void> {
     console.log("Posting yields now...");
     await triggerManualPost(bot);
     console.log("Done!");
-    // Exit explicitly: the top-level Deno.cron registration keeps the runtime
-    // alive otherwise, causing one-shot runs (e.g. GitHub Actions) to hang
-    // until the job timeout instead of finishing immediately after posting.
+    // Exit explicitly so one-shot runs (GitHub Actions) never wait on
+    // leftover handles after posting.
     Deno.exit(0);
   }
   
@@ -71,17 +58,15 @@ async function main(): Promise<void> {
     Deno.exit(0);
   }
   
-  // This is a pure broadcast bot — it only sends to a channel via cron.
-  // Long polling is incompatible with Deno Deploy (serverless, multiple isolates)
-  // and would cause 409 Conflict errors from Telegram. Nothing to do here.
-  console.log("Bot is ready. Waiting for cron trigger at 9:00 UTC...");
+  // This is a pure broadcast bot: it only posts when asked to.
+  console.log("Nothing to do. Use --post-now to publish the digest or --test to send a test message.");
 }
 
 /**
  * Test mode - fetch and display yields without Telegram
  */
 async function runTestMode(): Promise<void> {
-  console.log("Fetching TON yields from DefiLlama + Merkl (TAC)...\n");
+  console.log("Fetching TON yields (DefiLlama, Swap.coffee, Ethena, GTC, Palette)...\n");
   
   try {
     const yields = await fetchTonYields();

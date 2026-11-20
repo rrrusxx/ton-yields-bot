@@ -16,6 +16,7 @@ import {
   isCorrelatedPair,
   pairBelongsToCategory,
   isExcludedAsset,
+  isHackedProtocol,
   isTonUsdtPool,
 } from "./protocols.ts";
 
@@ -225,14 +226,44 @@ function organizeYields(grouped: GroupedYields): OrganizedYields {
 }
 
 /**
- * Get top N yields by APY across all categories
- * Excludes TON-USDT pools (IL risk)
+ * True if a yield may enter the TOP-5 (see getTopYields).
+ */
+export function isTopYieldEligible(y: YieldOpportunity): boolean {
+  return Number.isFinite(y.apyTotal) &&
+    y.apyTotal > 0 &&
+    y.apyTotal <= config.top5MaxApy &&
+    !y.tvlHidden &&
+    Number.isFinite(y.tvlUsd) &&
+    y.tvlUsd >= config.top5MinTvlUsd &&
+    !isHackedProtocol(y.source);
+}
+
+/**
+ * Get the top N yields by APY across the impermanent-loss-free categories
+ * (GRAM, stablecoins, BTC, ETH). GRAM-USDT pools never qualify.
+ *
+ * Eligibility (isTopYieldEligible): TVL of at least config.top5MinTvlUsd and
+ * known, APY above 0 and at most config.top5MaxApy, protocol not hacked.
+ * Rows that fail stay visible in their own section.
+ *
+ * One place per protocol and asset class, so one product shown twice (for
+ * example Bemo v1 stTON and v2 bmTON at the same rate) takes a single place.
+ * On equal APY the higher-TVL row wins (input is sorted by TVL, sort is stable).
  */
 export function getTopYields(grouped: GroupedYields, limit: number = 5): YieldOpportunity[] {
-  const allYields = [...grouped.TON, ...grouped.STABLE, ...grouped.BTC, ...grouped.ETH];
-  // Exclude TON-USDT pools (IL risk) and Snap (no TON wallet interface yet)
-  const filtered = allYields.filter(y => y.source !== "Snap");
-  return sortByApy(filtered).slice(0, limit);
+  const candidates = [...grouped.TON, ...grouped.STABLE, ...grouped.BTC, ...grouped.ETH]
+    .filter(isTopYieldEligible);
+
+  const taken = new Set<string>();
+  const top: YieldOpportunity[] = [];
+  for (const y of sortByApy(candidates)) {
+    if (top.length >= limit) break;
+    const key = `${y.source}|${y.assetType}`;
+    if (taken.has(key)) continue;
+    taken.add(key);
+    top.push(y);
+  }
+  return top;
 }
 
 /**
@@ -257,7 +288,7 @@ const SWAP_COFFEE_PROTOCOLS = [
   "ston-fi",
   "ston.fi",
   "stonfi",
-  "dedust",
+  "dedust", // covered by dedust.ts (DeDust's own API)
   "swap-coffee",
   "swap.coffee",
   "tonco",
@@ -324,64 +355,50 @@ async function fetchDefiLlamaYields(): Promise<GroupedYields> {
 }
 
 /**
- * Fetch and process all TON yields from DefiLlama, Merkl, and Morpho
- * Returns yields grouped by asset type
+ * Remove, in place, every row whose APY is not a finite number, with a
+ * warning per row. Returns the number of rows removed.
+ */
+export function dropNonFiniteApy(grouped: GroupedYields): number {
+  let dropped = 0;
+  for (const category of ["TON", "STABLE", "BTC", "ETH", "TON_USDT"] as const) {
+    grouped[category] = grouped[category].filter((y) => {
+      if (Number.isFinite(y.apyTotal)) return true;
+      console.warn(`Dropped ${y.source} ${y.asset}: APY is not a number after overrides`);
+      dropped++;
+      return false;
+    });
+  }
+  return dropped;
+}
+
+/**
+ * Fetch and process all TON yields from DefiLlama, Swap.coffee, Ethena, GTC
+ * and DeDust, then apply Palette APR and TVL overrides.
+ * Returns yields grouped by asset type.
+ *
+ * The TAC sources (Merkl, Feather Zone, Morpho via Goldsky, Euler, YieldFi)
+ * and the Midas vault were removed on 2026-11-20: the TAC sources no longer
+ * returned live data, and the Midas product is closed to new deposits. Their
+ * code is in the git history before that date.
  */
 export async function fetchTonYields(): Promise<GroupedYields> {
   // Import services dynamically to avoid circular dependencies
-  const { fetchMerklYields } = await import("./merkl.ts");
-  const { fetchMorphoYields } = await import("./morpho.ts");
-  const { fetchYieldFiYields } = await import("./yieldfi.ts");
   const { fetchEthenaYields } = await import("./ethena.ts");
   const { fetchSwapCoffeeYields } = await import("./swapcoffee.ts");
-  const { fetchMidasVaultYield } = await import("./midas.ts");
   const { fetchGtcYields } = await import("./gtc.ts");
+  const { fetchDedustYields } = await import("./dedust.ts");
   const { fetchPaletteData, applyPaletteOverrides } = await import("./palette.ts");
-  // Euler temporarily disabled — re-enable by restoring the fetchEulerYields
-  // import/call and the merge loop below.
 
   // Fetch from all sources in parallel
-  const [defiLlamaYields, merklYields, morphoYields, yieldFiYields, ethenaYields, swapCoffeeYields, midasYield, gtcYields, paletteData] = await Promise.all([
+  const [defiLlamaYields, ethenaYields, swapCoffeeYields, gtcYields, dedustYields, paletteData] = await Promise.all([
     fetchDefiLlamaYields(),
-    fetchMerklYields(),
-    fetchMorphoYields(),
-    fetchYieldFiYields(),
     fetchEthenaYields(),
     fetchSwapCoffeeYields(),
-    fetchMidasVaultYield(),
     fetchGtcYields(),
+    fetchDedustYields(),
     fetchPaletteData(),
   ]);
-  
-  // Merge Merkl yields into the grouped structure
-  for (const yield_ of merklYields) {
-    if (yield_.isTonUsdtPool) {
-      defiLlamaYields.TON_USDT.push(yield_);
-    } else {
-      defiLlamaYields[yield_.assetType].push(yield_);
-    }
-  }
-  
-  // Merge Morpho yields into the grouped structure
-  for (const yield_ of morphoYields) {
-    if (yield_.isTonUsdtPool) {
-      defiLlamaYields.TON_USDT.push(yield_);
-    } else {
-      defiLlamaYields[yield_.assetType].push(yield_);
-    }
-  }
 
-  // Euler merge intentionally removed — temporarily disabled per request.
-
-  // Merge YieldFi yields into the grouped structure
-  for (const yield_ of yieldFiYields) {
-    if (yield_.isTonUsdtPool) {
-      defiLlamaYields.TON_USDT.push(yield_);
-    } else {
-      defiLlamaYields[yield_.assetType].push(yield_);
-    }
-  }
-  
   // Merge Ethena yields into the grouped structure
   for (const yield_ of ethenaYields) {
     if (yield_.isTonUsdtPool) {
@@ -402,9 +419,13 @@ export async function fetchTonYields(): Promise<GroupedYields> {
     }
   }
   
-  // Merge Midas vault (Telegram Wallet; APY from Midas API) into STABLE
-  if (midasYield) {
-    defiLlamaYields.STABLE.push(midasYield);
+  // Merge DeDust pools (own API; DeDust is excluded from DefiLlama and Swap.coffee)
+  for (const yield_ of dedustYields) {
+    if (yield_.isTonUsdtPool) {
+      defiLlamaYields.TON_USDT.push(yield_);
+    } else {
+      defiLlamaYields[yield_.assetType].push(yield_);
+    }
   }
 
   // Merge GTC lending vaults (GRAM → TON, USDT → STABLE)
@@ -412,13 +433,17 @@ export async function fetchTonYields(): Promise<GroupedYields> {
     defiLlamaYields[yield_.assetType].push(yield_);
   }
 
-  // Apply Palette Finance APR overrides (more accurate values for covered
+  // Apply Palette Finance APR and TVL overrides (values for covered
   // protocols). Must run before re-sort and before downstream snapshot/average
   // tracking so all consumers see the corrected APRs.
   const overrideCount = applyPaletteOverrides(defiLlamaYields, paletteData);
   if (overrideCount > 0) {
     console.log(`Applied ${overrideCount} Palette APR override(s)`);
   }
+
+  // Drop rows whose APY is still not a real number (for example a Swap.coffee
+  // "NaN" APR that no Palette override replaced); they would print as "NaN%".
+  dropNonFiniteApy(defiLlamaYields);
 
   // Re-sort after merging
   defiLlamaYields.TON = sortByTvl(defiLlamaYields.TON);

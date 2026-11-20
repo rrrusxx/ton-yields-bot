@@ -3,7 +3,7 @@ import type { GroupedYields, YieldOpportunity } from "../types/yields.ts";
 /**
  * Palette Finance API
  *
- * Provides more accurate APR values for a subset of TON protocols.
+ * Provides APR values (and, for a few pools, TVL) for a subset of TON protocols.
  * We use Palette's value as an OVERRIDE for the yields it covers, and fall
  * back to our existing sources (DefiLlama, Swap Coffee, etc.) for everything
  * else.
@@ -11,7 +11,7 @@ import type { GroupedYields, YieldOpportunity } from "../types/yields.ts";
  * Response shape:
  * {
  *   "aprBySource": { "evaa_main_pool": 1.88, "storm_vault_usdt": 5.87, ... },
- *   "aprBySymbol": { "tsTON": 13.70, "hTON": 19.53, ... },
+ *   "aprBySymbol": { "tsTON": 13.70, "hGRAM": 19.53, ... },
  *   "fetchedAt": "2026-06-10T11:30:22.531Z"
  * }
  */
@@ -42,6 +42,11 @@ interface OverrideRule {
    * pools). Receives all matches, returns the subset to override.
    */
   selector?: (matches: YieldOpportunity[]) => YieldOpportunity[];
+  /**
+   * Optional aprBySource key ("tvl:...") holding the pool's TVL in USD.
+   * Used where the base source reports a wrong TVL.
+   */
+  tvlKey?: string;
 }
 
 /** Selector: keep only the single highest-TVL match. */
@@ -75,6 +80,10 @@ const OVERRIDE_RULES: OverrideRule[] = [
     table: "aprBySymbol",
     label: "Hipo (hGRAM)",
     match: (y) => eq(y.source, "Hipo"),
+    // Swap.coffee values Hipo at hGRAM supply x GRAM price, but each hGRAM is
+    // worth about 1.2 GRAM, so its TVL is about 17% too low. Palette's TVL
+    // matches the GRAM staked in the treasury contract and DefiLlama.
+    tvlKey: "tvl:hGRAM",
   },
   {
     key: "bmGRAM",
@@ -96,18 +105,27 @@ const OVERRIDE_RULES: OverrideRule[] = [
   },
 
   // --- Specific pools (aprBySource) ---
+  // Swap.coffee counts only the free balance of each Storm Trade vault (it
+  // leaves out funds locked against open trades, 9-20% of the vault on
+  // 2026-11-19) and updates it rarely, so both vaults take TVL from Palette.
+  // The GRAM vault APR comes from Palette too, like the USDT vault's.
   {
     key: "storm_vault_usdt",
     table: "aprBySource",
     label: "Storm Trade USDT vault",
     match: (y) => eq(y.source, "Storm Trade") && eq(y.asset, "USDT"),
+    tvlKey: "tvl:storm_vault_usdt",
   },
   {
-    key: "affluent_lending_vault_usdt",
+    key: "storm_vault_ton",
     table: "aprBySource",
-    label: "Affluent USDT lending vault",
-    match: (y) => eq(y.source, "Affluent") && eq(y.asset, "USDT"),
+    label: "Storm Trade GRAM vault",
+    match: (y) => eq(y.source, "Storm Trade") && (eq(y.asset, "GRAM") || eq(y.asset, "TON")),
+    tvlKey: "tvl:storm_vault_ton",
   },
+  // Affluent USDT override removed (2026-11-20): Affluent was exploited, and
+  // Palette's affluent_lending_vault_usdt value sits on a vault with only a
+  // few dollars of TVL.
   // EVAA: Palette's main/lp/stable keys correspond to EVAA's USDT pools.
   // (We don't currently surface a USDT "stable" pool, so evaa_stable_pool is
   // intentionally unmapped; evaa USDT/Alts isn't covered by Palette.)
@@ -172,10 +190,14 @@ export function applyPaletteOverrides(
 
   let overrideCount = 0;
 
+  const positive = (value: unknown): number | null =>
+    typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+
   for (const rule of OVERRIDE_RULES) {
-    const value = palette[rule.table]?.[rule.key];
-    if (value === null || value === undefined || !(value > 0)) {
-      continue; // No usable Palette value for this key
+    const value = positive(palette[rule.table]?.[rule.key]);
+    const tvl = rule.tvlKey ? positive(palette.aprBySource?.[rule.tvlKey]) : null;
+    if (value === null && tvl === null) {
+      continue; // No usable Palette value for this rule
     }
 
     // Collect all matches across categories, then narrow with the optional selector.
@@ -188,20 +210,27 @@ export function applyPaletteOverrides(
     const targets = rule.selector ? rule.selector(matches) : matches;
 
     for (const y of targets) {
-      // Replace APR with the more accurate Palette value.
-      if (y.apyReward && y.apyReward > 0) {
-        // Reward-bearing pool: treat Palette value as the new total,
-        // keep base, recompute reward as the remainder (clamped at 0).
-        y.apyTotal = value;
-        y.apyReward = Math.max(0, value - y.apyBase);
-      } else {
-        y.apyBase = value;
-        y.apyReward = null;
-        y.apyTotal = value;
+      if (value !== null) {
+        // Replace APR with the Palette value.
+        if (y.apyReward && y.apyReward > 0) {
+          // Reward-bearing pool: treat Palette value as the new total,
+          // keep base, recompute reward as the remainder (clamped at 0).
+          y.apyTotal = value;
+          y.apyReward = Math.max(0, value - y.apyBase);
+        } else {
+          y.apyBase = value;
+          y.apyReward = null;
+          y.apyTotal = value;
+        }
+
+        overrideCount++;
+        console.log(`  ↳ Palette override: ${rule.label} → ${value.toFixed(2)}%`);
       }
 
-      overrideCount++;
-      console.log(`  ↳ Palette override: ${rule.label} → ${value.toFixed(2)}%`);
+      if (tvl !== null) {
+        y.tvlUsd = tvl;
+        console.log(`  ↳ Palette TVL: ${rule.label} → $${(tvl / 1_000_000).toFixed(2)}M`);
+      }
     }
   }
 

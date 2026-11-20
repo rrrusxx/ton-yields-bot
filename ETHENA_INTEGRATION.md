@@ -1,137 +1,68 @@
 # Ethena Integration
 
-This document explains how Ethena yield opportunities are integrated into the TON Yields Bot.
+This document explains how the Ethena tsUSDe row is built.
 
 ## Overview
 
-**Ethena** is a synthetic dollar protocol that provides the first crypto-native solution for money not reliant on traditional banking system infrastructure. The protocol offers staked USDe (sUSDE) which earns yield from delta-hedging strategies.
+**Ethena** is a synthetic dollar protocol. Its staked USDe (sUSDe) earns yield from delta-hedging strategies. On TON the same position is held as **tsUSDe**.
 
 - **Website**: https://app.ethena.fi/earn/ton
-- **Telegram Mini App**: https://t.me/ethena_bot
 - **Documentation**: https://docs.ethena.fi/
 
 ## Supported Token
 
-### tsUSDE (Staked Ethena on TON)
-- **Description**: TON-wrapped version of sUSDE (Staked USDe)
-- **Strategy**: Delta-hedging of spot ETH positions with short perpetual futures positions
-- **Current APY**: ~4.87% (same as sUSDE)
-- **Asset Type**: STABLE
+### tsUSDE (staked USDe on TON)
+- **Strategy**: delta-hedging of spot positions with short perpetual futures
+- **APY**: the sUSDe rate
+- **Asset type**: `STABLE` ("STABLECOINS AND RELATED ASSETS" section)
 
-## Data Source
+## Data Sources
 
-### Current Implementation: DefiLlama API
+Both numbers come from DefiLlama.
 
-**Status**: ✅ Fully functional
+| Value | Source | Notes |
+|---|---|---|
+| APY | `https://yields.llama.fi/pools`, `project: "ethena-usde"`, `symbol: "SUSDE"` | The only matching pool is on Ethereum. tsUSDe earns the same rate. If several pools match, the highest APY is used. |
+| TVL | `https://api.llama.fi/protocol/ethena-tsusde`, field `currentChainTvls.TON` | DefiLlama's "Ethena tsUSDe" listing, which covers TON only. About $1.87M on 2026-11-19. |
 
-Ethena data is fetched from DefiLlama's yields API, which tracks Ethena pools across all supported chains.
+If the TVL request fails, the row keeps its APY, shows no TVL (`tvlHidden`) and cannot enter the TOP-5.
 
-**Data Fetching**:
-- **Source**: `https://yields.llama.fi/pools` (filtered by `project: "ethena-usde"`, `symbol: "SUSDE"`)
-- **APY**: Taken from DefiLlama (consistent across all chains)
-- **TVL**: **Aggregated sum across all chains** where sUSDE is deployed
+### History
 
-**Current Data** (as of Jan 23, 2026):
-- **tsUSDE (sUSDE)**: 4.87% APY, $3.8B TVL
-  - Chains: Ethereum, Base, Arbitrum, etc.
-
-**Why Aggregate TVL?**
-Since sUSDE and tsUSDE represent the same underlying asset (staked USDe) with the same APY across all chains, we show the total value locked across all networks. This gives users a complete picture of the protocol's total assets under management.
-
-**tsUSDE vs sUSDE:**
-- `sUSDE` = Staked USDe (native on Ethereum and other EVM chains)
-- `tsUSDE` = TON-wrapped Staked USDe (bridged to TON blockchain)
-- **Same APY**: Both earn the same yield from Ethena's delta-hedging strategy
-- **Data Source**: We fetch sUSDE APY from DefiLlama and display it for tsUSDE
+Until v1.4.0 (2026-11-20) the bot summed the TVL of all sUSDe pools in the yields API. That is the Ethereum pool (about $1.2B), so the post showed a TVL about 600 times larger than the real amount on TON, and Ethena was sorted first among stablecoins.
 
 ## Integration Details
 
-### File Structure
+### Files
 
 ```
-src/services/ethena.ts     # Ethena data fetching service
-src/services/defillama.ts   # Merges Ethena with other sources
-src/services/protocols.ts   # Ethena protocol URL mapping
+src/services/ethena.ts      # Ethena APY and TON TVL
+src/services/defillama.ts   # fetchTonYields() merges Ethena with the other sources
+src/services/protocols.ts   # Ethena protocol URL
 ```
 
 ### Data Flow
 
-1. `fetchEthenaYields()` is called from `fetchTonYields()`
-2. Fetches sUSDE pools from DefiLlama API
-3. Filters for `project: "ethena-usde"` and `symbol: "SUSDE"`
-4. Aggregates APY (max) and TVL (sum) across all chains
-5. Transforms to `YieldOpportunity` interface with symbol "tsUSDE"
-6. Merges with DefiLlama, Merkl, Morpho, Euler, and YieldFi yields
-
-### Classification
-
-- **tsUSDE**: Classified as `STABLE` (stablecoin category)
-
-The token appears in the "STABLECOINS AND RELATED ASSETS" section of the daily message.
-
-## How It Works
-
-### Data Flow
-
-1. **Fetch from DefiLlama**: `fetchEthenaPools()` fetches all pools where `project === "ethena-usde"` and `symbol === "SUSDE"`
-2. **Aggregate**: `aggregateEthena()` groups pools
-   - Takes the max APY across chains (usually identical)
-   - Sums TVL across all chains
-3. **Transform**: Convert to `YieldOpportunity` format with symbol "tsUSDE"
-4. **Merge**: Integrated with other data sources in `fetchTonYields()`
-
-### Code Example
-
-```typescript
-// Fetch Ethena sUSDE pools from DefiLlama
-const pools = await fetchEthenaPools();
-
-// Aggregate sUSDE across: Ethereum, Base, Arbitrum, etc.
-const aggregated = aggregateEthena(pools);
-
-// Result:
-// tsUSDE: APY = 4.87%, TVL = $3.8B (sum of all chains)
-```
-
-### Automatic Updates
-
-- **APY**: Updated automatically from DefiLlama (no manual intervention needed)
-- **TVL**: Real-time aggregation across all chains
-- **New Chains**: Automatically included when Ethena deploys to new networks
+1. `fetchTonYields()` calls `fetchEthenaYields()`.
+2. `fetchEthenaPools()` and `fetchEthenaTonTvl()` run in parallel.
+3. The APY is the highest sUSDe APY found; rows below 0.1% are skipped.
+4. `transformEthenaToken()` builds one `YieldOpportunity` with the symbol `tsUSDE`.
 
 ## Display Format
-
-### Message Output
 
 ```
 STABLECOINS AND RELATED ASSETS
 
 Ethena
-└ tsUSDE: 4.9% | $3.8B
+└ tsUSDE: 5.4% | $1.9M
 ```
 
-### Sorting
+## Error Handling
 
-Protocols in the Stablecoins section are sorted by total TVL (descending). Ethena, with $3.8B TVL, appears at the top of the stablecoins category.
-
-## Technical Notes
-
-### Why sUSDE for tsUSDE APY?
-
-1. **Same Underlying Asset**: Both represent staked USDe earning yield from Ethena's protocol
-2. **Consistent APY**: The staking yield is protocol-level, not chain-specific
-3. **Bridge Mechanics**: tsUSDE is a bridged/wrapped version maintaining the same yield characteristics
-4. **User Clarity**: Shows TON users the actual yield they can expect from holding tsUSDE
-
-### Error Handling
-
-- Falls back gracefully if DefiLlama API is unavailable
-- Logs errors to console without breaking the bot
-- Returns empty array `[]` if no data is available
+- A failed APY request returns no Ethena row and does not break the post.
+- A failed TVL request hides the TVL only.
 
 ## Future Enhancements
 
-Potential improvements:
-- Direct integration with Ethena's TON-native contract (if available)
-- Display of TON-specific TVL for tsUSDE
-- Integration of Ethena's USDt (non-staked) yield opportunities
+- Read the tsUSDe vault on TON directly (`getTotalAssets` / `getTotalShares`) to get the realized APY and TVL on chain.
+- Reuse the DefiLlama pools download from `defillama.ts` instead of fetching the 10 MB file a second time.

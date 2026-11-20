@@ -49,7 +49,7 @@ export async function sendToChannel(bot: Bot, message: string): Promise<void> {
   try {
     await bot.api.sendMessage(config.telegramChannelId, message, {
       parse_mode: "HTML",
-      disable_web_page_preview: true,
+      link_preview_options: { is_disabled: true },
     });
     console.log("Message sent to channel successfully");
   } catch (error) {
@@ -59,7 +59,7 @@ export async function sendToChannel(bot: Bot, message: string): Promise<void> {
 }
 
 /**
- * Get the bot instance (singleton pattern for Deno Deploy)
+ * Get the bot instance (singleton)
  */
 let botInstance: Bot | null = null;
 

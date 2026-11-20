@@ -1,5 +1,4 @@
 import type { Bot } from "grammy";
-// Note: Deno.cron is registered at top level in main.ts (Deno Deploy requirement)
 import { fetchTonYields } from "./services/defillama.ts";
 import { formatChannelMessage } from "./formatters/message.ts";
 import { sendToChannel } from "./bot.ts";

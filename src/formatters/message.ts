@@ -1,10 +1,55 @@
 import type { GroupedYields, OrganizedYields, ProtocolGroup, YieldOpportunity } from "../types/yields.ts";
 import { getTopYields } from "../services/defillama.ts";
+import { isHackedProtocol } from "../services/protocols.ts";
 import { fetchTonTVL, formatTVL } from "../services/tvl.ts";
 import { saveTvlSnapshot, calculateTvlChange, formatTvlChange } from "../services/tvl_history.ts";
 import { saveAllApySnapshots, calculateAll7DayAverages } from "../services/apy_history.ts";
 
 const SEPARATOR = "──────────────────────";
+
+/**
+ * Escape text for Telegram HTML parse mode. Pool, vault and protocol names
+ * come from third-party APIs, so every dynamic string goes through this:
+ * a single "<" or "&" would otherwise make Telegram reject the whole post,
+ * and markup inside a name could inject a link. Also safe for href values.
+ */
+export function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** Longest third-party string shown in the post, in characters */
+const MAX_DISPLAY_LENGTH = 64;
+
+/**
+ * Prepare a third-party string for one line of the post: replace C0 and C1
+ * control characters (including NEL) and line or paragraph separators with
+ * spaces (a line break in a name could fake extra rows), drop text-direction
+ * controls and zero-width spaces (they could visually reorder the APY and TVL
+ * of a row), collapse whitespace, repair lone surrogates and shorten very long
+ * values with "…" (one huge name could push the post past Telegram's
+ * 4,096-character limit). Escape the result with escapeHtml.
+ */
+export function displayText(text: string): string {
+  const oneLine = String(text)
+    .toWellFormed()
+    .replace(/[\u0000-\u001F\u007F-\u009F\u2028\u2029]/g, " ")
+    .replace(/[\u061C\u200B\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  const chars = Array.from(oneLine);
+  return chars.length > MAX_DISPLAY_LENGTH
+    ? `${chars.slice(0, MAX_DISPLAY_LENGTH - 1).join("")}…`
+    : oneLine;
+}
+
+/** displayText, then escapeHtml: the way to put third-party text in the post */
+function safeText(text: string): string {
+  return escapeHtml(displayText(text));
+}
 
 /**
  * Rank emojis for TOP 5
@@ -35,6 +80,17 @@ const LOW_TVL_THRESHOLD = 10_000;
  */
 function lowTvlWarning(tvlUsd: number): string {
   return tvlUsd < LOW_TVL_THRESHOLD ? " ⚠️" : "";
+}
+
+/**
+ * The " | $1.2M" part of a row, or nothing when the TVL must not be shown:
+ * unknown TVL (tvlHidden) or a hacked protocol, whose reported TVL is frozen.
+ */
+function formatTvlPart(yield_: YieldOpportunity): string {
+  if (yield_.tvlHidden || isHackedProtocol(yield_.source)) {
+    return "";
+  }
+  return ` | ${formatTvl(yield_.tvlUsd)}${lowTvlWarning(yield_.tvlUsd)}`;
 }
 
 function formatUtilization(utilizationPct?: number): string {
@@ -84,9 +140,9 @@ function formatApy(apy: number, avg7d?: number | null): string {
  */
 function formatAssetWithLabel(asset: string, label: string | null): string {
   if (label && label.length > 0) {
-    return `${asset} (${label})`;
+    return `${safeText(asset)} (${safeText(label)})`;
   }
-  return asset;
+  return safeText(asset);
 }
 
 /**
@@ -107,7 +163,7 @@ function formatYieldLine(
   let apyText: string;
   if (yield_.apyNote) {
     // Hardcoded/custom APY with a descriptive note instead of 7d average
-    apyText = `${yield_.apyTotal.toFixed(2)}% (${yield_.apyNote})`;
+    apyText = `${yield_.apyTotal.toFixed(2)}% (${safeText(yield_.apyNote)})`;
   } else if (yield_.apyReward && yield_.apyReward > 0.1) {
     // For pools with rewards, show base + reward, then direction + 7d average of total
     const baseReward = `${formatApy(yield_.apyBase)} (+${formatApy(yield_.apyReward)})`;
@@ -123,10 +179,8 @@ function formatYieldLine(
     apyText = formatApy(yield_.apyTotal, avg7d);
   }
   
-  // Format TVL (with low-liquidity warning if applicable)
-  const tvlText = formatTvl(yield_.tvlUsd);
-  
-  return `${prefix} ${assetText}: ${apyText}${formatUtilization(yield_.utilizationPct)} | ${tvlText}${lowTvlWarning(yield_.tvlUsd)}`;
+  // TVL (with low-liquidity warning), omitted when unknown or untrustworthy
+  return `${prefix} ${assetText}: ${apyText}${formatUtilization(yield_.utilizationPct)}${formatTvlPart(yield_)}`;
 }
 
 /**
@@ -134,9 +188,9 @@ function formatYieldLine(
  */
 function formatProtocolLink(name: string, url: string): string {
   if (url && url.length > 0) {
-    return `<a href="${url}">${name}</a>`;
+    return `<a href="${escapeHtml(url)}">${safeText(name)}</a>`;
   }
-  return name;
+  return safeText(name);
 }
 
 /**
@@ -184,14 +238,10 @@ function addLabelsForDuplicates(yields: YieldOpportunity[]): Map<YieldOpportunit
 function formatProtocolGroup(group: ProtocolGroup, averages: Map<YieldOpportunity, number>, maxYields?: number): string {
   const lines: string[] = [];
   
-  // Protocol name as header with hyperlink
-  // If any yield in this group has a secondary source (e.g. Telegram Wallet), append it
+  // Protocol name as header with hyperlink; a hacked protocol gets a risk flag
   const protocolLink = formatProtocolLink(group.protocol, group.protocolUrl);
-  const secondary = group.yields.find(y => y.secondarySourceUrl);
-  const secondaryLink = secondary?.secondarySourceUrl
-    ? ` & ${formatProtocolLink(secondary.secondarySourceName ?? "Telegram Wallet", secondary.secondarySourceUrl)}`
-    : "";
-  lines.push(`<b>${protocolLink}${secondaryLink}</b>`);
+  const hackedFlag = isHackedProtocol(group.protocol) ? " 🚨 Hacked" : "";
+  lines.push(`<b>${protocolLink}${hackedFlag}</b>`);
   
   // Apply optional limit (yields are already sorted by TVL)
   const yields = maxYields ? group.yields.slice(0, maxYields) : group.yields;
@@ -213,7 +263,7 @@ function formatProtocolGroup(group: ProtocolGroup, averages: Map<YieldOpportunit
  * Format a category section (TON, STABLE, BTC, ETH, etc.)
  * @param protocolLimits - Optional map of protocol name -> max yields to show
  */
-function formatCategorySection(
+export function formatCategorySection(
   title: string,
   protocolGroups: ProtocolGroup[],
   averages: Map<YieldOpportunity, number>,
@@ -247,7 +297,7 @@ function formatCategorySection(
 /**
  * Format Top 5 yields section
  */
-function formatTopYieldsSection(yields: YieldOpportunity[], averages: Map<YieldOpportunity, number>): string {
+export function formatTopYieldsSection(yields: YieldOpportunity[], averages: Map<YieldOpportunity, number>): string {
   if (yields.length === 0) {
     return "";
   }
@@ -271,7 +321,7 @@ function formatTopYieldsSection(yields: YieldOpportunity[], averages: Map<YieldO
     const avg7d = averages.get(y) || null;
     let apyText: string;
     if (y.apyNote) {
-      apyText = `${y.apyTotal.toFixed(2)}% (${y.apyNote})`;
+      apyText = `${y.apyTotal.toFixed(2)}% (${safeText(y.apyNote)})`;
     } else if (y.apyReward && y.apyReward > 0.1) {
       const baseReward = `${formatApy(y.apyBase)} (+${formatApy(y.apyReward)})`;
       if (avg7d !== null && avg7d !== undefined) {
@@ -286,7 +336,7 @@ function formatTopYieldsSection(yields: YieldOpportunity[], averages: Map<YieldO
     }
 
     const protocolLink = formatProtocolLink(y.source, y.sourceUrl);
-    contentLines.push(`${rankEmoji} ${protocolLink} ${assetText}: ${apyText}${formatUtilization(y.utilizationPct)} | ${formatTvl(y.tvlUsd)}${lowTvlWarning(y.tvlUsd)}`);
+    contentLines.push(`${rankEmoji} ${protocolLink} ${assetText}: ${apyText}${formatUtilization(y.utilizationPct)}${formatTvlPart(y)}`);
   });
 
   result.push(`<blockquote expandable>${contentLines.join("\n")}</blockquote>`);
@@ -303,6 +353,7 @@ function getCurrentDateUTC(): string {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: "UTC",
   };
   return now.toLocaleDateString("en-US", options);
 }
@@ -318,9 +369,10 @@ function getCurrentTimeUTC(): string {
 }
 
 /**
- * Group yields by protocol within each category
+ * Group yields by protocol within each category.
+ * Groups are ordered by total TVL; hacked protocols always come last.
  */
-function organizeByProtocol(yields: YieldOpportunity[]): ProtocolGroup[] {
+export function organizeByProtocol(yields: YieldOpportunity[]): ProtocolGroup[] {
   const protocolMap = new Map<string, YieldOpportunity[]>();
   
   for (const yield_ of yields) {
@@ -339,13 +391,16 @@ function organizeByProtocol(yields: YieldOpportunity[]): ProtocolGroup[] {
     });
   }
   
-  // Sort by total TVL
+  // Sort by total TVL (rows with hidden TVL count as 0); hacked protocols last
+  const visibleTvl = (group: ProtocolGroup) =>
+    group.yields.reduce((sum, y) => sum + (y.tvlHidden ? 0 : y.tvlUsd), 0);
   groups.sort((a, b) => {
-    const tvlA = a.yields.reduce((sum, y) => sum + y.tvlUsd, 0);
-    const tvlB = b.yields.reduce((sum, y) => sum + y.tvlUsd, 0);
-    return tvlB - tvlA;
+    const hackedA = isHackedProtocol(a.protocol) ? 1 : 0;
+    const hackedB = isHackedProtocol(b.protocol) ? 1 : 0;
+    if (hackedA !== hackedB) return hackedA - hackedB;
+    return visibleTvl(b) - visibleTvl(a);
   });
-  
+
   return groups;
 }
 
@@ -453,8 +508,8 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   // Footer
   sections.push(SEPARATOR);
   sections.push("");
-  sections.push("<i>APY (7d avg) ↑↓ | UR = Utilisation Rate (🔥 if &gt;95%) | TVL · ⚠️ low TVL (&lt;$10K)</i>");
-  sections.push(`<i>📊 <a href="https://defillama.com/">DefiLlama</a> · <a href="https://merkl.xyz/">Merkl</a> · <a href="https://goldsky.com/">Goldsky</a> · <a href="https://swap.coffee/">Swap.coffee</a> · <a href="https://palette.finance/">Palette</a> · <a href="https://giftcredit.app/">GTC</a> · ${getCurrentTimeUTC()}</i>`);
+  sections.push("<i>APY (7d avg) ↑↓ | UR = Utilisation Rate (🔥 if &gt;95%) | TVL · ⚠️ low TVL (&lt;$10K) · 🚨 hacked protocol</i>");
+  sections.push(`<i>📊 <a href="https://defillama.com/">DefiLlama</a> · <a href="https://swap.coffee/">Swap.coffee</a> · <a href="https://palette.finance/">Palette</a> · <a href="https://giftcredit.app/">GTC</a> · ${getCurrentTimeUTC()}</i>`);
   
   return sections.join("\n");
 }

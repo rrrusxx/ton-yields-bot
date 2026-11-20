@@ -2,10 +2,23 @@
 
 ## 📊 Project Overview
 
-Telegram bot that aggregates yield opportunities from TON blockchain and TAC (The Application Chain), posting daily summaries to a Telegram channel.
+Telegram bot that aggregates yield opportunities from TON DeFi (the TON coin is called GRAM since June 2026), posting daily summaries to a Telegram channel.
 
-**Current Version:** v1.0 (MVP)  
-**Status:** ✅ Production Ready
+**Current Version:** v1.4.0  
+**Status:** ✅ In production (GitHub Actions, scheduled for 08:00 UTC; GitHub usually starts it 6-10 hours late)
+
+---
+
+## 📍 Status and Plan (November 20, 2026)
+
+**v1.4.0 (hotfix after the November 2026 audit):** Hipo restored, TOP-5 rules, TAC sources and the Midas vault removed, Affluent marked as hacked, Ethena and GTC TVL fixed, Hipo and Storm vault TVL from Palette, 7-day averages limited to the last 7 days, HTML escaping with one-line names capped at 64 characters, sturdier handling of "NaN" values and GTC renames, DeDust GRAM-USDT pools from DeDust's own API, Ston.fi GRAM-USDT pools labelled v1/v2, leftover `Deno.cron` removed, first unit tests. Details in [CHANGELOG.md](CHANGELOG.md).
+
+**Next, in order:**
+1. **Own on-chain engine.** Realized APY of all six LSTs from each contract's exchange rate over whole validation cycles, net of protocol fees, for every LST including Tonstakers and Bemo (decided 2026-11-20); Palette becomes a cross-check and "⛓ on-chain" goes into the footer. Then EVAA, Storm vaults and tsUSDe; DEX pools from Ston.fi and DefiLlama instead of Swap.coffee.
+2. **Hosting.** Run the daily job on a scheduler that starts on time and alerts on failure. Proposed: Supabase Cron + Edge Function + Postgres for history, plus a healthchecks.io watchdog. GitHub Actions stays for code and manual runs.
+3. **Reliability.** Retries, one DefiLlama download per run, source fallbacks, a source health summary, a guard against duplicate posts, stable history keys.
+4. **New post format.** Top yields per asset, a "since yesterday" block, a Telegram Rich Messages pilot in the test channel.
+5. **Platform.** Interactive bot and a Mini App dashboard.
 
 ---
 
@@ -19,18 +32,18 @@ Telegram bot that aggregates yield opportunities from TON blockchain and TAC (Th
 
 ### Data Sources
 - [x] DefiLlama API integration (TON native protocols)
-- [x] Merkl API integration (TAC dApps - Chain ID 239)
-- [x] Morpho Goldsky subgraph integration (TAC lending markets)
+- [x] Merkl API integration (TAC dApps - Chain ID 239) (removed in v1.4.0)
+- [x] Morpho Goldsky subgraph integration (TAC lending markets) (removed in v1.4.0)
 - [x] Asset classification (TON, Stablecoins, BTC)
 - [x] Correlated pairs filtering (no IL risk)
 - [x] Protocol URL mappings (TMAs and websites)
 
 ### Protocols Integrated
 - [x] TON Native: Storm Trade, EVAA, Affluent, Hipo, Ston.fi, DeDust, Tonstakers, etc.
-- [x] TAC dApps (via Merkl): Carbon, Snap, Curve
-- [x] TAC dApps (via Goldsky): Morpho lending markets
-- [x] TAC dApps (via contracts): Euler lending vaults
-- [x] TAC dApps (via fallback): YieldFi (yUSD, vyUSD vaults)
+- [x] TAC dApps (via Merkl): Carbon, Snap, Curve (removed in v1.4.0)
+- [x] TAC dApps (via Goldsky): Morpho lending markets (removed in v1.4.0)
+- [x] TAC dApps (via contracts): Euler lending vaults (removed in v1.4.0)
+- [x] TAC dApps (via fallback): YieldFi (yUSD, vyUSD vaults) (removed in v1.4.0)
 
 ### Message Formatting
 - [x] Group yields by asset type
@@ -45,8 +58,8 @@ Telegram bot that aggregates yield opportunities from TON blockchain and TAC (Th
 ### Telegram Bot
 - [x] grammY bot framework integration
 - [x] HTML message formatting
-- [x] Daily scheduler (Deno.cron at 9:00 UTC)
-- [x] Bot commands (/start, /help, /yields)
+- [x] Daily schedule (GitHub Actions at 08:00 UTC; Deno.cron removed in v1.4.0)
+- [x] Bot commands (/start, /help) defined, but inactive: the bot only broadcasts and does not poll for updates
 - [x] Test mode (console output without Telegram)
 - [x] Manual post trigger (--post-now)
 
@@ -55,41 +68,27 @@ Telegram bot that aggregates yield opportunities from TON blockchain and TAC (Th
 - [x] APY validation (0% - 10,000%)
 - [x] Exclude memecoins (NOT, DOGS, HMSTR, etc.)
 - [x] Correlated pairs only (TON-stTON, USDT-USDC, etc.)
-- [x] Filter uncorrelated LP pairs (no WTAC-TON, USD₮-TON, etc.)
+- [x] Filter uncorrelated LP pairs out of the asset sections (GRAM-USDT pools have their own section since Jan 2026)
 
 ### Deployment Ready
-- [x] Deno Deploy configuration
+- [x] Deno Deploy configuration (replaced by GitHub Actions)
 - [x] .env.example template
 - [x] README with setup instructions
 - [x] MERKL_INTEGRATION.md documentation
 
 ---
 
-## 🚧 In Progress (v1.1)
-
-### Euler Integration ✅
-- [x] Euler contract integration via ethers.js
-- [x] Direct on-chain data fetching
-- [x] Supply APY calculation from contracts
-- [ ] Test Euler yields in production
-
-### GitHub & Deployment
-- [ ] Push code to GitHub repository (including Euler)
-- [ ] Deploy to Deno Deploy
-- [ ] Set up environment variables in Deno Deploy
-- [ ] Test automated daily posts
-
----
-
 ## 📋 Planned Features
 
-### v1.2 - Enhanced Data & Analytics
+For the current order of work see "Status and Plan" at the top. The lists below are older ideas.
+
+### Enhanced Data & Analytics
 
 #### Historical Tracking
-- [ ] Store daily yield snapshots
-- [ ] Calculate 7-day average APYs
+- [x] Store daily yield snapshots
+- [x] Calculate 7-day average APYs
 - [ ] Show APY delta vs yesterday (△ +0.5%)
-- [ ] Track APY trends (📈 rising, 📉 falling)
+- [x] Track APY trends (↑/↓ against the 7-day average)
 
 #### Additional Data Sources
 - [ ] Direct protocol APIs (higher accuracy)
@@ -97,25 +96,19 @@ Telegram bot that aggregates yield opportunities from TON blockchain and TAC (Th
   - [ ] EVAA API
   - [ ] Ston.fi API
 - [ ] Manual yield entries (for protocols without APIs)
-  - [ ] Telegram Wallet (t.me/wallet)
+  - [ ] Walt (formerly Telegram Wallet)
   - [ ] MyTonWallet (MTW)
   - [ ] Tonkeeper
 
-#### More TAC dApps
-- [ ] ZeroLend (Lending)
-- [ ] IPOR Fusion
-- [ ] Market.win
-- [ ] Additional Bancor pools
-
 ---
 
-### v1.3 - User Experience
+### User Experience
 
 #### Message Enhancements
-- [ ] Asset emojis (💎 TON, 💵 USDT, ₿ BTC)
+- [x] Asset emojis in section headers (💎 GRAM, 💵 stablecoins, ₿ BTC)
 - [ ] Medal indicators (🥇🥈🥉 for top performers per category)
 - [ ] Better visual separators
-- [ ] Footer with statistics (Total TVL, # of opportunities)
+- [x] Header with statistics (TON DeFi TVL, # of opportunities)
 
 #### Bot Features
 - [ ] Subscribe/unsubscribe commands
@@ -126,7 +119,7 @@ Telegram bot that aggregates yield opportunities from TON blockchain and TAC (Th
 
 ---
 
-### v1.4 - Alerts & Notifications
+### Alerts & Notifications
 
 #### Smart Alerts
 - [ ] APY change alerts (>1% increase/decrease)
@@ -142,7 +135,7 @@ Telegram bot that aggregates yield opportunities from TON blockchain and TAC (Th
 
 ---
 
-### v1.5 - Analytics Dashboard
+### Analytics Dashboard
 
 #### Web Interface (Optional)
 - [ ] Fresh framework web dashboard
@@ -184,7 +177,13 @@ Telegram bot that aggregates yield opportunities from TON blockchain and TAC (Th
 
 ## 🐛 Known Issues
 
-- None currently reported
+- Swap.coffee is the only source for most LST and DEX rows; when it fails, those rows disappear from the post.
+- The GitHub schedule starts hours late, and a public repo loses its schedule after 60 days without commits.
+- Tonco GRAM-USDT shows an outlier APR (often above 70%); it stays in the GRAM-USDT section and never enters the TOP-5.
+- When Palette is down, Hipo and Storm Trade vault TVLs fall back to Swap.coffee, which reports them 9-20% too low (Hipo at hGRAM supply x GRAM price, Storm without locked funds).
+- Lending rows mix TVL meanings: EVAA shows free liquidity (supply minus borrow), GTC shows total deposits.
+- No final check against Telegram's 4,096-character limit (names are capped at 64 characters; the post uses about 2,000 today).
+- The header TVL counts bridges, so it is about 8% above DefiLlama's TON chain figure.
 
 ---
 
@@ -192,11 +191,10 @@ Telegram bot that aggregates yield opportunities from TON blockchain and TAC (Th
 
 ### Design Decisions
 - **Why correlated pairs only?** To avoid showing opportunities with impermanent loss risk
-- **Why Merkl for TAC?** Merkl aggregates reward campaigns that aren't on DefiLlama
 - **Why daily updates?** Balance between freshness and spam prevention
 
 ### Technical Debt
-- Consider caching Merkl/DefiLlama responses (reduce API calls)
+- Download the DefiLlama pools file once per run (today defillama.ts and ethena.ts each fetch it)
 - Add retry logic for failed API calls
 - Implement rate limiting for bot commands
 
@@ -213,7 +211,10 @@ Telegram bot that aggregates yield opportunities from TON blockchain and TAC (Th
 
 ## 📅 Version History
 
-### v1.0 (Current) - January 2026
+### v1.4.0 (Current) - November 2026
+- Hotfix after the audit: Hipo restored, TOP-5 rules, TAC and Midas sources removed, Affluent flagged as hacked, Ethena, GTC, Hipo and Storm TVL fixed, honest 7-day averages, HTML escaping
+
+### v1.0 - January 2026
 - Initial MVP release
 - DefiLlama + Merkl integration
 - Daily Telegram posts
@@ -233,5 +234,5 @@ To add a new task or feature request:
 
 ---
 
-**Last Updated:** January 2026  
+**Last Updated:** November 2026  
 **Maintainer:** Ruslan Romanov

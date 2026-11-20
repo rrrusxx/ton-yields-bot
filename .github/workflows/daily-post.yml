@@ -1,7 +1,7 @@
 name: Daily Yields Post
 
 on:
-  # Runs every day at 9:00 AM UTC
+  # Runs every day at 08:00 UTC (GitHub often starts scheduled runs late)
   schedule:
     - cron: '0 8 * * *'
   # Allows manual trigger from the GitHub Actions UI

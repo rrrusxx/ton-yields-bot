@@ -1,5 +1,7 @@
 # Morpho Integration Documentation
 
+> **Removed on 2026-11-20 (v1.4.0).** The Goldsky subgraph kept returning stale rates for TAC vaults (799.9% and 511.1% on about $1-3K of TVL), and those two rows held TOP-5 #1 and #2 for months. The code is in the git history: `src/services/morpho.ts` at commit `a1d8d10`. This document is kept for reference.
+
 ## Overview
 
 Morpho Protocol integration uses the **Goldsky Subgraph** to fetch **direct lending market data** for the TAC (The Application Chain). This provides accurate supply yields for various assets bridged to TON via TAC.

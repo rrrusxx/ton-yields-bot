@@ -19,18 +19,19 @@ const MAX_HISTORY_DAYS = 30; // Keep last 30 days
 
 /**
  * Open Deno KV database
- * In production (Deno Deploy): uses cloud KV (no path needed)
- * In development: uses local file in ./data/kv.db
+ * Legacy Deno Deploy (DENO_DEPLOYMENT_ID set): cloud KV.
+ * Everywhere else, including GitHub Actions production: ./data/kv.db
+ * (carried between runs by actions/cache).
  */
 async function getKv(): Promise<Deno.Kv> {
-  // Check if we're in Deno Deploy production environment
+  // Legacy Deno Deploy sets DENO_DEPLOYMENT_ID
   const isProduction = Deno.env.get("DENO_DEPLOYMENT_ID") !== undefined;
   
   if (isProduction) {
-    // Production: Use cloud KV (default)
+    // Deno Deploy: cloud KV (default)
     return await Deno.openKv();
   } else {
-    // Development: Use local file-based KV
+    // GitHub Actions and local runs: file-based KV
     try {
       await Deno.mkdir("./data", { recursive: true });
     } catch {

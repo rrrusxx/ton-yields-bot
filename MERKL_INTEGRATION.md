@@ -1,5 +1,7 @@
 # Merkl API Integration
 
+> **Removed on 2026-11-20 (v1.4.0).** Merkl has had no live campaigns on TAC (chain 239) since August 2026, so this source, together with the Feather Zone base APYs it used, returned no rows. The code is in the git history: `src/services/merkl.ts` at commit `a1d8d10`. This document is kept for reference.
+
 ## Overview
 
 This bot now integrates with [Merkl](https://app.merkl.xyz/?chain=239) to fetch additional yield opportunities from TAC - Chain ID 239.

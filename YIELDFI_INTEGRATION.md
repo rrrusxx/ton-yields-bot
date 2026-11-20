@@ -1,5 +1,7 @@
 # YieldFi Integration
 
+> **Removed on 2026-11-20 (v1.4.0).** DefiLlama no longer lists the YieldFi project on any chain, so the source returned no rows while still downloading the full DefiLlama pools file. The code is in the git history: `src/services/yieldfi.ts` at commit `a1d8d10`. This document is kept for reference.
+
 This document explains how YieldFi yield opportunities are integrated into the TON Yields Bot.
 
 ## Overview

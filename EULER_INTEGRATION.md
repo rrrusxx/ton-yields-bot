@@ -1,5 +1,7 @@
 # Euler Integration Documentation
 
+> **Removed on 2026-11-20 (v1.4.0).** Euler on TAC had been disabled since August 2026: it held only a few thousand dollars and its Ankr RPC endpoint stopped answering. The code is in the git history: `src/services/euler.ts` at commit `a1d8d10`. The `ethers` dependency it needed was removed too. This document is kept for reference.
+
 ## Overview
 
 Euler Protocol integration uses **direct smart contract calls** via ethers.js to fetch lending vault data from the TAC (The Application Chain). This provides real-time, on-chain yield data without relying on external indexers.
