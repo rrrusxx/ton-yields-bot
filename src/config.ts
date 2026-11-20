@@ -5,9 +5,12 @@
 
 import { load } from "std/dotenv/mod.ts";
 
-// Load .env file (if it exists)
+// Load .env file (if it exists). .env.example is documentation only: with
+// std's default it would be enforced as a list of required keys, and one
+// optional key missing from .env (TONCENTER_API_KEY) silently dropped the
+// whole file, including the bot token.
 try {
-  const envVars = await load({ allowEmptyValues: true });
+  const envVars = await load({ allowEmptyValues: true, examplePath: null, defaultsPath: null });
   // Set loaded variables into Deno.env
   for (const [key, value] of Object.entries(envVars)) {
     if (!Deno.env.get(key)) {

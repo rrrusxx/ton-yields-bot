@@ -252,7 +252,7 @@ function formatProtocolGroup(group: ProtocolGroup, averages: Map<YieldOpportunit
   // Add each yield line
   yields.forEach((y, index) => {
     const label = labels.get(y);
-    const avg7d = averages.get(y) || null;
+    const avg7d = y.onChain ? (y.apy7d ?? null) : (y.apy7d ?? (averages.get(y) || null));
     lines.push(formatYieldLine(y, index === yields.length - 1, label, avg7d));
   });
   
@@ -317,8 +317,8 @@ export function formatTopYieldsSection(yields: YieldOpportunity[], averages: Map
     // Format asset with label if available
     const assetText = formatAssetWithLabel(y.asset, y.poolMeta);
 
-    // Format APY with 7-day average and direction
-    const avg7d = averages.get(y) || null;
+    // Format APY with 7-day average and direction (a measured 7d value wins)
+    const avg7d = y.onChain ? (y.apy7d ?? null) : (y.apy7d ?? (averages.get(y) || null));
     let apyText: string;
     if (y.apyNote) {
       apyText = `${y.apyTotal.toFixed(2)}% (${safeText(y.apyNote)})`;
@@ -416,7 +416,9 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
 
   // IMPORTANT: Save today's APY snapshots FIRST before calculating averages
   // This ensures today's data is included in the average calculation
-  await saveAllApySnapshots(allPools);
+  // Rows read on-chain carry their own measured 7d value; saving them would mix
+  // their numbers into the history of the fallback rows that share their key.
+  await saveAllApySnapshots(allPools.filter((y) => !y.onChain));
   
   // Calculate 7-day averages for all pools (includes today's data)
   const averages = await calculateAll7DayAverages(allPools);
@@ -509,7 +511,9 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   sections.push(SEPARATOR);
   sections.push("");
   sections.push("<i>APY (7d avg) ↑↓ | UR = Utilisation Rate (🔥 if &gt;95%) | TVL · ⚠️ low TVL (&lt;$10K) · 🚨 hacked protocol</i>");
-  sections.push(`<i>📊 <a href="https://defillama.com/">DefiLlama</a> · <a href="https://swap.coffee/">Swap.coffee</a> · <a href="https://palette.finance/">Palette</a> · <a href="https://giftcredit.app/">GTC</a> · ${getCurrentTimeUTC()}</i>`);
+  // "⛓️ on-chain" only when the post really has rows read from contracts
+  const onChain = allPools.some((y) => y.onChain) ? "⛓️ on-chain · " : "";
+  sections.push(`<i>📊 ${onChain}<a href="https://defillama.com/">DefiLlama</a> · <a href="https://swap.coffee/">Swap.coffee</a> · <a href="https://palette.finance/">Palette</a> · <a href="https://giftcredit.app/">GTC</a> · ${getCurrentTimeUTC()}</i>`);
   
   return sections.join("\n");
 }

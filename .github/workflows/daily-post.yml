@@ -48,6 +48,9 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+          # Optional: a free toncenter key raises the on-chain engine's limit
+          # from 1 to 10 requests per second. Without the secret this is empty.
+          TONCENTER_API_KEY: ${{ secrets.TONCENTER_API_KEY }}
 
       # Always save the updated KV database, even if the post step fails,
       # so APY history is never lost.

@@ -59,3 +59,11 @@ Deno.test("Affluent is never overridden", () => {
   applyPaletteOverrides(grouped([], [affluent]), palette({}, { affluent_lending_vault_usdt: 34.97 }));
   assertEquals(affluent.apyTotal, 5.6);
 });
+
+Deno.test("rows computed on-chain are never overridden by Palette", () => {
+  const tonstakers = row({ source: "Tonstakers", asset: "GRAM-tsTON", poolMeta: "tsTON", apyTotal: 12.09, tvlUsd: 156_000_000, onChain: true });
+  const hipo = row({ source: "Hipo", asset: "GRAM-hGRAM", poolMeta: "hGRAM", apyTotal: 16.71, tvlUsd: 9_050_000, onChain: true });
+  const count = applyPaletteOverrides(grouped([tonstakers, hipo]), palette({ tsTON: 13.33, hGRAM: 17.05 }, { "tvl:hGRAM": 9_097_736 }));
+  assertEquals(count, 0);
+  assertEquals([tonstakers.apyTotal, hipo.apyTotal, hipo.tvlUsd], [12.09, 16.71, 9_050_000]);
+});

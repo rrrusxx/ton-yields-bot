@@ -372,8 +372,9 @@ export function dropNonFiniteApy(grouped: GroupedYields): number {
 }
 
 /**
- * Fetch and process all TON yields from DefiLlama, Swap.coffee, Ethena, GTC
- * and DeDust, then apply Palette APR and TVL overrides.
+ * Fetch and process all TON yields: LSTs on-chain (own engine, with Swap.coffee
+ * as the fallback), DefiLlama, Swap.coffee, Ethena, GTC and DeDust, then apply
+ * Palette APR and TVL overrides to the rows not computed on-chain.
  * Returns yields grouped by asset type.
  *
  * The TAC sources (Merkl, Feather Zone, Morpho via Goldsky, Euler, YieldFi)
@@ -387,15 +388,17 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   const { fetchSwapCoffeeYields } = await import("./swapcoffee.ts");
   const { fetchGtcYields } = await import("./gtc.ts");
   const { fetchDedustYields } = await import("./dedust.ts");
+  const { fetchOnchainLstYields, preferOnchain } = await import("./onchain.ts");
   const { fetchPaletteData, applyPaletteOverrides } = await import("./palette.ts");
 
   // Fetch from all sources in parallel
-  const [defiLlamaYields, ethenaYields, swapCoffeeYields, gtcYields, dedustYields, paletteData] = await Promise.all([
+  const [defiLlamaYields, ethenaYields, swapCoffeeYields, gtcYields, dedustYields, onchainYields, paletteData] = await Promise.all([
     fetchDefiLlamaYields(),
     fetchEthenaYields(),
     fetchSwapCoffeeYields(),
     fetchGtcYields(),
     fetchDedustYields(),
+    fetchOnchainLstYields(),
     fetchPaletteData(),
   ]);
 
@@ -444,6 +447,12 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   // Drop rows whose APY is still not a real number (for example a Swap.coffee
   // "NaN" APR that no Palette override replaced); they would print as "NaN%".
   dropNonFiniteApy(defiLlamaYields);
+
+  // LST rows computed from the contracts replace the fallback rows of the same
+  // LSTs (Swap.coffee, already with Palette's APR and TVL). An LST the engine
+  // could not read keeps its fallback row; without a GRAM price an on-chain row
+  // takes the fallback row's (Palette-corrected) TVL.
+  defiLlamaYields.TON = preferOnchain(defiLlamaYields.TON, onchainYields);
 
   // Re-sort after merging
   defiLlamaYields.TON = sortByTvl(defiLlamaYields.TON);

@@ -210,6 +210,19 @@ export function applyPaletteOverrides(
     const targets = rule.selector ? rule.selector(matches) : matches;
 
     for (const y of targets) {
+      if (y.onChain) {
+        // Our own contract reading wins; Palette is only a cross-check here
+        if (value !== null) {
+          const gap = value - y.apyTotal;
+          const note = `  ↳ Palette check: ${rule.label} on-chain ${y.apyTotal.toFixed(2)}% vs Palette ${value.toFixed(2)}%`;
+          if (Math.abs(gap) > 1) {
+            console.warn(`${note} (differs by ${gap.toFixed(2)} pp)`);
+          } else {
+            console.log(note);
+          }
+        }
+        continue;
+      }
       if (value !== null) {
         // Replace APR with the Palette value.
         if (y.apyReward && y.apyReward > 0) {

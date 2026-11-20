@@ -4,7 +4,8 @@
 
 ## 🔥 Next
 
-- [ ] **Own on-chain engine** (next): realized APY of all six LSTs (Tonstakers, Stakee, Hipo, KTON, Bemo v1 and v2) from each contract's exchange rate over whole validation cycles, net of protocol fees, with "⛓ on-chain" in the footer once live. Decided 2026-11-20: the on-chain rate is used for all six, including Tonstakers and Bemo, where it is about 1.2 pp below Palette. Then EVAA, Storm and tsUSDe; Palette becomes a cross-check.
+- [ ] **Align the on-chain windows to the validation round** (start of the round from config param 34 or Hipo's settled round, plus a fixed offset away from payout times), so a KTON or Bemo payout near "now" can never be miscounted.
+- [ ] **On-chain engine, part 2:** EVAA (`getAssetRates`), Storm Trade vaults (`get_vault_data`, 30-day window) and Ethena tsUSDe on TON (`getTotalAssets`/`getTotalShares`). Optional: a free toncenter key as the `TONCENTER_API_KEY` secret.
 - [ ] **Run the daily job on time and with alerts.** GitHub starts the 08:00 UTC schedule 6-10 hours late, and public repos lose their schedule after 60 days without commits. Proposed: Supabase Cron + Edge Function + Postgres for history, plus a healthchecks.io watchdog that alerts in Telegram. GitHub Actions stays for code and manual runs.
 - [ ] **Reliability:** retries, one DefiLlama download per run, fallback rows when Swap.coffee fails, a source health summary, a guard against duplicate posts.
 - [ ] Final check against Telegram's 4,096-character limit before sending, with a shorter fallback post.
@@ -14,6 +15,7 @@
 
 ## ✅ Recently Completed
 
+- [x] **Own on-chain engine for the six LSTs** (v1.5.0, Nov 20, 2026): APY over the last cycle and "7d" over the last 5 cycles, both from the contracts, net of protocol fees; "⛓️ on-chain" in the footer; Swap.coffee and Palette as the fallback and cross-check
 - [x] **P0 hotfix after the November 2026 audit** (v1.4.0, Nov 20, 2026)
   - [x] Hipo back in the post; allowlist knows GRAM-era tickers (hGRAM, tsGRAM, stGRAM, bmGRAM, wGRAM)
   - [x] TOP-5 rules: TVL from $10K, APY up to 100%, no hacked protocols, one place per protocol and asset class

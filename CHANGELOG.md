@@ -5,6 +5,22 @@ All notable changes to TON Yields Bot will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-11-20
+
+### Added
+- **Own on-chain engine for the six liquid staking tokens** (Tonstakers, Stakee, Hipo, KTON, Bemo v1 and v2), see [ONCHAIN_INTEGRATION.md](ONCHAIN_INTEGRATION.md). The APY is the realized growth of each contract's exchange rate (GRAM held / tokens issued), net of every protocol fee: over the last cycle of 2 validation rounds (about 1.5 days) for the post's APY, over the last 5 cycles (about 7.6 days) for its "7d" value. Past states come from archival nodes, so the 7d value is available from day one and never mixes in figures from other sources. TVL = GRAM held x GRAM price.
+- "⛓️ on-chain" in the footer's sources line whenever the post contains rows read from contracts.
+- Optional `TONCENTER_API_KEY` secret in the workflow and `.env.example` (10 requests per second instead of 1).
+- Safety for the engine: a 2-minute limit after which every LST falls back to Swap.coffee and the abandoned run stops; archival "cannot load state" answers step to a later block at once, and block lookups retry a few seconds later; the two windows are compared (the 5-cycle value replaces a one-cycle value that counted a payout too many or too few, a doubtful 5-cycle value is not shown as 7d, and an LST without a 5-cycle reading falls back); stricter layout checks for Hipo and Bemo; LST rows are matched to the fallback rows by contract address or by ticker in either generation, after Palette's overrides, so a row without a GRAM price inherits the Palette-corrected TVL; on-chain rows do not write into the shared 7-day history.
+- Known limit: a miscounted payout at the very end of both windows ("now") is not caught (about 0.1% of runs per KTON or Bemo token, value off by about 20%). Aligning the windows to the validation round is planned.
+
+### Fixed
+- `.env` is loaded even when it lacks keys listed in `.env.example`. std dotenv treated the example as a list of required keys, so one optional key missing from `.env` silently dropped the whole file, including the bot token; `.env.defaults` is no longer read either.
+
+### Changed
+- The on-chain value is used for every LST (owner's decision of 2026-11-20). For Tonstakers it is about 1.3 pp below the 13.3% that Palette and Swap.coffee show; for the others it is within about 0.4 pp of Palette on 2026-11-20.
+- Palette no longer overrides LST rows read on-chain; it is logged as a cross-check (warning above 1 pp). Swap.coffee's LST rows, with Palette's overrides, stay as the fallback for any LST the engine cannot read.
+
 ## [1.4.0] - 2026-11-20
 
 Hotfix after the November 2026 audit. Changes between 1.3.0 and 1.4.0 (Swap.coffee, Palette, GTC, the Midas vault, the GitHub Actions schedule and others) were not recorded here; see the git history.

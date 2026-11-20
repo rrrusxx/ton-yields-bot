@@ -4,7 +4,7 @@
 
 Telegram bot that aggregates yield opportunities from TON DeFi (the TON coin is called GRAM since June 2026), posting daily summaries to a Telegram channel.
 
-**Current Version:** v1.4.0  
+**Current Version:** v1.5.0  
 **Status:** ✅ In production (GitHub Actions, scheduled for 08:00 UTC; GitHub usually starts it 6-10 hours late)
 
 ---
@@ -13,8 +13,10 @@ Telegram bot that aggregates yield opportunities from TON DeFi (the TON coin is 
 
 **v1.4.0 (hotfix after the November 2026 audit):** Hipo restored, TOP-5 rules, TAC sources and the Midas vault removed, Affluent marked as hacked, Ethena and GTC TVL fixed, Hipo and Storm vault TVL from Palette, 7-day averages limited to the last 7 days, HTML escaping with one-line names capped at 64 characters, sturdier handling of "NaN" values and GTC renames, DeDust GRAM-USDT pools from DeDust's own API, Ston.fi GRAM-USDT pools labelled v1/v2, leftover `Deno.cron` removed, first unit tests. Details in [CHANGELOG.md](CHANGELOG.md).
 
+**v1.5.0:** own on-chain engine for the six LSTs (APY and 7d value from the contracts, net of protocol fees), "⛓️ on-chain" in the footer. Details in [ONCHAIN_INTEGRATION.md](ONCHAIN_INTEGRATION.md).
+
 **Next, in order:**
-1. **Own on-chain engine.** Realized APY of all six LSTs from each contract's exchange rate over whole validation cycles, net of protocol fees, for every LST including Tonstakers and Bemo (decided 2026-11-20); Palette becomes a cross-check and "⛓ on-chain" goes into the footer. Then EVAA, Storm vaults and tsUSDe; DEX pools from Ston.fi and DefiLlama instead of Swap.coffee.
+1. **On-chain engine, the rest.** EVAA, Storm vaults and tsUSDe from their contracts; DEX pools from Ston.fi and DefiLlama instead of Swap.coffee.
 2. **Hosting.** Run the daily job on a scheduler that starts on time and alerts on failure. Proposed: Supabase Cron + Edge Function + Postgres for history, plus a healthchecks.io watchdog. GitHub Actions stays for code and manual runs.
 3. **Reliability.** Retries, one DefiLlama download per run, source fallbacks, a source health summary, a guard against duplicate posts, stable history keys.
 4. **New post format.** Top yields per asset, a "since yesterday" block, a Telegram Rich Messages pilot in the test channel.
@@ -177,10 +179,11 @@ For the current order of work see "Status and Plan" at the top. The lists below 
 
 ## 🐛 Known Issues
 
-- Swap.coffee is the only source for most LST and DEX rows; when it fails, those rows disappear from the post.
+- Swap.coffee is the only source for most DEX rows; when it fails, those rows disappear from the post (LST rows survive: they come from the contracts).
 - The GitHub schedule starts hours late, and a public repo loses its schedule after 60 days without commits.
 - Tonco GRAM-USDT shows an outlier APR (often above 70%); it stays in the GRAM-USDT section and never enters the TOP-5.
-- When Palette is down, Hipo and Storm Trade vault TVLs fall back to Swap.coffee, which reports them 9-20% too low (Hipo at hGRAM supply x GRAM price, Storm without locked funds).
+- When Palette is down, Storm Trade vault TVLs fall back to Swap.coffee, which reports them 9-20% too low (without the funds locked against open trades). Hipo's TVL comes from its contract.
+- On-chain windows end at "now", not at a round boundary. KTON and Bemo payouts drift up to about 13 minutes around the cycle, so now and then a window counts a payout too many or too few. reconcile() catches it at the start of the one-cycle window, but not at "now", which both windows share (about 0.1% of runs per KTON or Bemo token, value off by about 20%). Aligning the windows to the validation round would make both values exact.
 - Lending rows mix TVL meanings: EVAA shows free liquidity (supply minus borrow), GTC shows total deposits.
 - No final check against Telegram's 4,096-character limit (names are capped at 64 characters; the post uses about 2,000 today).
 - The header TVL counts bridges, so it is about 8% above DefiLlama's TON chain figure.
@@ -211,7 +214,10 @@ For the current order of work see "Status and Plan" at the top. The lists below 
 
 ## 📅 Version History
 
-### v1.4.0 (Current) - November 2026
+### v1.5.0 (Current) - November 2026
+- Own on-chain engine for the six liquid staking tokens
+
+### v1.4.0 - November 2026
 - Hotfix after the audit: Hipo restored, TOP-5 rules, TAC and Midas sources removed, Affluent flagged as hacked, Ethena, GTC, Hipo and Storm TVL fixed, honest 7-day averages, HTML escaping
 
 ### v1.0 - January 2026

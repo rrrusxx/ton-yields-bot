@@ -295,6 +295,7 @@ export function transformSwapCoffeePool(pool: SwapCoffeePool): YieldOpportunity 
     apyTotal,
     tvlUsd,
     isTonUsdtPool: isTonUsdt,
+    poolAddress: pool.address,
   };
 }
 

@@ -89,3 +89,19 @@ Deno.test("rows with hidden TVL show no TVL part", () => {
   assertStringIncludes(top, "GRAM-hGRAM: 17.1% | $7.5M</blockquote>");
   assert(top.startsWith("──────────────────────\n<b>🏆 TOP 5 YIELD OPPORTUNITIES</b>"));
 });
+
+Deno.test("a measured 7d value is shown without any saved history", () => {
+  const section = formatCategorySection("💎 GRAM AND RELATED ASSETS", organizeByProtocol([
+    row({ source: "Tonstakers", asset: "GRAM-tsTON", poolMeta: "tsTON", apyTotal: 12.06, apy7d: 12.06, onChain: true, tvlUsd: 155_000_000 }),
+    row({ source: "Stakee", asset: "GRAM", poolMeta: "STAKED", apyTotal: 14.6, apy7d: 13.7, onChain: true, tvlUsd: 22_000_000 }),
+  ]), noAverages);
+  assertStringIncludes(section, "GRAM-tsTON (tsTON): 12.1% (7d: 12.1%)");
+  assertStringIncludes(section, "GRAM (STAKED): 14.6% ↑ (7d: 13.7%)");
+});
+
+Deno.test("an on-chain row without a trustworthy 7d value shows none, even with saved history", () => {
+  const onchain = row({ source: "KTON", poolMeta: "KTON", apyTotal: 13.4, onChain: true, tvlUsd: 2_000_000 });
+  const averages = new Map<YieldOpportunity, number>([[onchain, 13.0]]);
+  const section = formatCategorySection("💎 GRAM AND RELATED ASSETS", organizeByProtocol([onchain]), averages);
+  assertStringIncludes(section, "└ GRAM (KTON): 13.4% | $2.0M");
+});

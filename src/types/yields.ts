@@ -33,6 +33,20 @@ export interface YieldOpportunity {
    * no TVL for the row, and the row cannot enter the TOP-5.
    */
   tvlHidden?: boolean;
+  /**
+   * True when the APY (and TVL) was computed by the bot itself from the
+   * protocol's contract (src/services/onchain.ts). Palette never overrides
+   * such rows, and the post credits "⛓️ on-chain" in its footer.
+   */
+  onChain?: boolean;
+  /**
+   * The row's own 7-day APY, when the source measures it directly (the
+   * on-chain engine). The post shows it instead of the average of saved
+   * daily snapshots.
+   */
+  apy7d?: number;
+  /** Contract address of the pool, when the source reports it */
+  poolAddress?: string;
   /** Custom APY label shown in place of the 7-day average (e.g. "5y avg") */
   apyNote?: string;
   /** Pool utilization as a percentage (0-100), e.g. for lending/borrow markets */
