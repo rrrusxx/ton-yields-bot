@@ -5,6 +5,20 @@ All notable changes to TON Yields Bot will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-11-23
+
+### Added
+- **On-time start.** An outside scheduler (cron-job.org) starts `daily-post.yml` at 08:00 UTC through GitHub's `workflow_dispatch` API, with a retry at 08:30. GitHub's own schedule started runs hours late (median 7 h 51 min after 08:00 in November 2026; no run at all on 2026-05-23 and 05-26). See [HOSTING.md](HOSTING.md).
+- **Once a day.** The bot records the day's post per channel and UTC date in its KV store; a later run that day (the retry, the fallback, a manual run) stops before building a post. `--force`, or the workflow's `force` input, reposts. Each run attempt saves the store under its own cache key, so a re-run restores the newest store instead of its own old one. A second post remains possible if GitHub's cache fails, and on the day of the switch (the old version wrote no marker).
+- **Watchdog.** With the `HC_PING_URL` secret, each run tells healthchecks.io "start", then "success" only after Telegram accepted the post (or when the day's post was already out), or "fail" with the reason (the bot token masked). healthchecks.io alerts in Telegram on a failure or when no success arrives by 08:45 UTC.
+- **Test runs on GitHub.** The workflow's `target` input sends a run to the test channel (`TEST_TELEGRAM_BOT_TOKEN` / `TEST_TELEGRAM_CHANNEL_ID` only); test runs never touch the production history or the watchdog.
+- `daily-post-fallback.yml`: GitHub's late schedule, kept only to start the post workflow if the outside scheduler failed. A fallback run that GitHub starts after midnight UTC belongs to the previous day and does nothing.
+
+### Changed
+- `daily-post.yml` has no schedule of its own: GitHub disables the scheduled workflows of a public repository after 60 days without activity, and a disabled workflow also refuses `workflow_dispatch`. A concurrency group lets one run per channel go at a time.
+- A run that finds no yields at all now fails (and alerts) instead of exiting quietly.
+- One shared opener for the KV store (`src/services/kv.ts`, path overridable with `YIELDS_KV_PATH`); the leftover Deno Deploy branch is gone.
+
 ## [1.5.0] - 2026-11-23
 
 ### Added

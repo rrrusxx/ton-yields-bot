@@ -1,11 +1,36 @@
 name: Daily Yields Post
 
+# How the daily post starts (details and setup in HOSTING.md):
+# - at 08:00 UTC an outside scheduler (cron-job.org) starts this workflow
+#   through GitHub's workflow_dispatch API, and again at 08:30 as a retry;
+# - daily-post-fallback.yml starts it from GitHub's own schedule, which runs
+#   hours late, in case the outside scheduler failed;
+# - it can also be started by hand from the Actions tab.
+# The bot posts at most once per UTC day per channel: a later run finds
+# today's marker in the KV store and stops (unless "force" is set).
+# This file has no schedule on purpose: GitHub disables the scheduled
+# workflows of a public repository after 60 days without activity, and a
+# disabled workflow also refuses the outside scheduler's calls.
 on:
-  # Runs every day at 08:00 UTC (GitHub often starts scheduled runs late)
-  schedule:
-    - cron: '0 8 * * *'
-  # Allows manual trigger from the GitHub Actions UI
   workflow_dispatch:
+    inputs:
+      target:
+        description: "Channel: production, or test (needs the TEST_TELEGRAM_* secrets)"
+        type: choice
+        options:
+          - production
+          - test
+        default: production
+      force:
+        description: "Post even if today's post already went out"
+        type: boolean
+        default: false
+
+# One run at a time per channel. A run that arrives while another is busy
+# waits for it, then finds today's marker and stops.
+concurrency:
+  group: daily-post-${{ inputs.target || 'production' }}
+  cancel-in-progress: false
 
 jobs:
   post:
@@ -32,31 +57,51 @@ jobs:
           restore-keys: |
             deno-${{ runner.os }}-
 
-      # Restore the KV database from the previous run.
-      # Uses a prefix-based restore-key so we always get the latest snapshot
-      # even though each run saves under a unique key.
+      # Restore the KV store (history and the daily post marker) from the
+      # latest run. Each run attempt saves under its own key, so the exact key
+      # never matches here and the prefix restore-key picks the newest cache.
+      # (A key without run_attempt would make a re-run restore its own old,
+      # markerless snapshot and post a second time.)
       - name: Restore KV data cache
         uses: actions/cache/restore@v4
         with:
           path: ./data
-          key: kv-data-${{ runner.os }}-${{ github.run_id }}
+          key: kv-data-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             kv-data-${{ runner.os }}-
+
+      # A test run uses only the test pair and a production run only the
+      # production pair; a missing secret stops the run here instead of
+      # letting the bot fall back to its no-credentials dry mode.
+      - name: Check the channel secrets
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHANNEL_ID" ]; then
+            echo "::error::The bot token or channel id for the '$TARGET' channel is missing from the repository secrets"
+            exit 1
+          fi
+        env:
+          TARGET: ${{ inputs.target || 'production' }}
+          TELEGRAM_BOT_TOKEN: ${{ inputs.target == 'test' && secrets.TEST_TELEGRAM_BOT_TOKEN || inputs.target != 'test' && secrets.TELEGRAM_BOT_TOKEN || '' }}
+          TELEGRAM_CHANNEL_ID: ${{ inputs.target == 'test' && secrets.TEST_TELEGRAM_CHANNEL_ID || inputs.target != 'test' && secrets.TELEGRAM_CHANNEL_ID || '' }}
 
       - name: Post daily yields
         run: deno task post
         env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ inputs.target == 'test' && secrets.TEST_TELEGRAM_BOT_TOKEN || inputs.target != 'test' && secrets.TELEGRAM_BOT_TOKEN || '' }}
+          TELEGRAM_CHANNEL_ID: ${{ inputs.target == 'test' && secrets.TEST_TELEGRAM_CHANNEL_ID || inputs.target != 'test' && secrets.TELEGRAM_CHANNEL_ID || '' }}
           # Optional: a free toncenter key raises the on-chain engine's limit
           # from 1 to 10 requests per second. Without the secret this is empty.
           TONCENTER_API_KEY: ${{ secrets.TONCENTER_API_KEY }}
+          # The healthchecks.io watchdog hears only about production posts.
+          # Without the secret no signal is sent.
+          HC_PING_URL: ${{ inputs.target != 'test' && secrets.HC_PING_URL || '' }}
+          POST_FORCE: ${{ inputs.force && 'true' || 'false' }}
 
-      # Always save the updated KV database, even if the post step fails,
-      # so APY history is never lost.
+      # Save the KV store even if the post step failed, so the history is
+      # never lost. Test runs leave the production history alone.
       - name: Save KV data cache
         uses: actions/cache/save@v4
-        if: always()
+        if: always() && inputs.target != 'test'
         with:
           path: ./data
-          key: kv-data-${{ runner.os }}-${{ github.run_id }}
+          key: kv-data-${{ runner.os }}-${{ github.run_id }}-${{ github.run_attempt }}

@@ -4,6 +4,8 @@
  * Uses Deno KV for persistent storage across deployments
  */
 
+import { openKv } from "./kv.ts";
+
 interface TvlSnapshot {
   date: string; // ISO date string (YYYY-MM-DD)
   tvl: number;
@@ -17,36 +19,13 @@ interface TvlHistory {
 const KV_KEY = ["tvl_history"];
 const MAX_HISTORY_DAYS = 30; // Keep last 30 days
 
-/**
- * Open Deno KV database
- * Legacy Deno Deploy (DENO_DEPLOYMENT_ID set): cloud KV.
- * Everywhere else, including GitHub Actions production: ./data/kv.db
- * (carried between runs by actions/cache).
- */
-async function getKv(): Promise<Deno.Kv> {
-  // Legacy Deno Deploy sets DENO_DEPLOYMENT_ID
-  const isProduction = Deno.env.get("DENO_DEPLOYMENT_ID") !== undefined;
-  
-  if (isProduction) {
-    // Deno Deploy: cloud KV (default)
-    return await Deno.openKv();
-  } else {
-    // GitHub Actions and local runs: file-based KV
-    try {
-      await Deno.mkdir("./data", { recursive: true });
-    } catch {
-      // Directory already exists
-    }
-    return await Deno.openKv("./data/kv.db");
-  }
-}
 
 /**
  * Load TVL history from Deno KV
  */
 async function loadHistory(): Promise<TvlHistory> {
   try {
-    const kv = await getKv();
+    const kv = await openKv();
     const result = await kv.get<TvlHistory>(KV_KEY);
     kv.close();
     
@@ -66,7 +45,7 @@ async function loadHistory(): Promise<TvlHistory> {
  */
 async function saveHistory(history: TvlHistory): Promise<void> {
   try {
-    const kv = await getKv();
+    const kv = await openKv();
     await kv.set(KV_KEY, history);
     kv.close();
   } catch (error) {

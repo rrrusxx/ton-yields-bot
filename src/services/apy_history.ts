@@ -5,6 +5,7 @@
  */
 
 import type { YieldOpportunity } from "../types/yields.ts";
+import { openKv } from "./kv.ts";
 
 interface ApySnapshot {
   date: string; // ISO date string (YYYY-MM-DD)
@@ -22,29 +23,6 @@ const MAX_HISTORY_DAYS = 30; // Keep last 30 days
 const MIN_DAYS_FOR_AVERAGE = 3; // Minimum days needed to show average
 const AVERAGE_WINDOW_DAYS = 7; // "7d average" = snapshots dated within the last 7 days, today included
 
-/**
- * Open Deno KV database
- * Legacy Deno Deploy (DENO_DEPLOYMENT_ID set): cloud KV.
- * Everywhere else, including GitHub Actions production: ./data/kv.db
- * (carried between runs by actions/cache).
- */
-async function getKv(): Promise<Deno.Kv> {
-  // Legacy Deno Deploy sets DENO_DEPLOYMENT_ID
-  const isProduction = Deno.env.get("DENO_DEPLOYMENT_ID") !== undefined;
-  
-  if (isProduction) {
-    // Deno Deploy: cloud KV (default)
-    return await Deno.openKv();
-  } else {
-    // GitHub Actions and local runs: file-based KV
-    try {
-      await Deno.mkdir("./data", { recursive: true });
-    } catch {
-      // Directory already exists
-    }
-    return await Deno.openKv("./data/kv.db");
-  }
-}
 
 /**
  * Generate a unique pool ID from YieldOpportunity
@@ -71,7 +49,7 @@ function getTodayDate(): string {
  */
 async function loadPoolHistory(poolId: string): Promise<PoolHistory> {
   try {
-    const kv = await getKv();
+    const kv = await openKv();
     const key = [...KV_PREFIX, poolId];
     const result = await kv.get<PoolHistory>(key);
     kv.close();
@@ -92,7 +70,7 @@ async function loadPoolHistory(poolId: string): Promise<PoolHistory> {
  */
 async function savePoolHistory(history: PoolHistory): Promise<void> {
   try {
-    const kv = await getKv();
+    const kv = await openKv();
     const key = [...KV_PREFIX, history.poolId];
     await kv.set(key, history);
     kv.close();

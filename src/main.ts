@@ -4,10 +4,12 @@ import { triggerManualPost } from "./scheduler.ts";
 import { fetchTonYields } from "./services/defillama.ts";
 import { formatChannelMessage, formatTestMessage } from "./formatters/message.ts";
 
-// Scheduling lives outside the code: the GitHub Actions workflow
-// (.github/workflows/daily-post.yml) runs `deno task post` once a day.
-// The top-level Deno.cron left over from Deno Deploy was removed on
-// 2026-11-20; it had caused duplicate posts.
+// Scheduling lives outside the code: an outside scheduler starts the GitHub
+// Actions workflow (.github/workflows/daily-post.yml) at 08:00 UTC, and the
+// workflow runs `deno task post`. A run posts at most once per UTC day
+// (src/services/post_guard.ts); see HOSTING.md. The top-level Deno.cron left
+// over from Deno Deploy was removed on 2026-11-20; it had caused duplicate
+// posts.
 
 /**
  * Main entry point for the TON Yields Bot
@@ -41,9 +43,11 @@ async function main(): Promise<void> {
   const args = Deno.args;
   
   if (args.includes("--post-now")) {
-    // Immediate post mode
+    // Immediate post mode. --force (or POST_FORCE=true from the workflow's
+    // "force" input) posts even if today's post already went out.
     console.log("Posting yields now...");
-    await triggerManualPost(bot);
+    const force = args.includes("--force") || Deno.env.get("POST_FORCE") === "true";
+    await triggerManualPost(bot, { force });
     console.log("Done!");
     // Exit explicitly so one-shot runs (GitHub Actions) never wait on
     // leftover handles after posting.

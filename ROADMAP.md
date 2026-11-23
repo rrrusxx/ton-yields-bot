@@ -4,8 +4,8 @@
 
 Telegram bot that aggregates yield opportunities from TON DeFi (the TON coin is called GRAM since June 2026), posting daily summaries to a Telegram channel.
 
-**Current Version:** v1.5.0  
-**Status:** ✅ In production (GitHub Actions, scheduled for 08:00 UTC; GitHub usually starts it 6-10 hours late)
+**Current Version:** v1.6.0  
+**Status:** ✅ In production (GitHub Actions; from v1.6.0 started at 08:00 UTC by cron-job.org once the owner finishes the setup in HOSTING.md, until then by GitHub's late fallback schedule)
 
 ---
 
@@ -17,8 +17,8 @@ Telegram bot that aggregates yield opportunities from TON DeFi (the TON coin is 
 
 **Next, in order:**
 1. **On-chain engine, the rest.** EVAA and tsUSDe from their contracts (the Storm vaults are done); DEX pools from Ston.fi and DefiLlama instead of Swap.coffee.
-2. **Hosting.** Run the daily job on a scheduler that starts on time and alerts on failure. Proposed: Supabase Cron + Edge Function + Postgres for history, plus a healthchecks.io watchdog. GitHub Actions stays for code and manual runs.
-3. **Reliability.** Retries, one DefiLlama download per run, source fallbacks, a source health summary, a guard against duplicate posts, stable history keys.
+2. **Hosting.** Done in code (v1.6.0): cron-job.org starts the GitHub workflow at 08:00 UTC, a once-a-day guard, a healthchecks.io watchdog; it goes live when the owner finishes the setup in HOSTING.md. Supabase and Deno Deploy were considered and not used (see HOSTING.md).
+3. **Reliability.** Retries, one DefiLlama download per run, source fallbacks, a source health summary, stable history keys.
 4. **New post format.** Top yields per asset, a "since yesterday" block, a Telegram Rich Messages pilot in the test channel.
 5. **Platform.** Interactive bot and a Mini App dashboard.
 
@@ -180,7 +180,7 @@ For the current order of work see "Status and Plan" at the top. The lists below 
 ## 🐛 Known Issues
 
 - Swap.coffee is the only source for most DEX rows; when it fails, those rows disappear from the post (LST and Storm vault rows survive: they come from the contracts).
-- The GitHub schedule starts hours late, and a public repo loses its schedule after 60 days without commits.
+- Until the HOSTING.md setup is done, the post still waits for GitHub's late schedule; afterwards only the fallback depends on it (and GitHub switches a schedule off after 60 days without commits).
 - Tonco GRAM-USDT shows an outlier APR (often above 70%); it stays in the GRAM-USDT section and never enters the TOP-5.
 - On-chain windows end at "now", not at a round boundary. KTON and Bemo payouts drift up to about 13 minutes around the cycle, so now and then a window counts a payout too many or too few. reconcile() catches it at the start of the one-cycle window, but not at "now", which both windows share (about 0.1% of runs per KTON or Bemo token, value off by about 20%). Aligning the windows to the validation round would make both values exact.
 - Lending rows mix TVL meanings: EVAA shows free liquidity (supply minus borrow), GTC shows total deposits.
@@ -213,7 +213,10 @@ For the current order of work see "Status and Plan" at the top. The lists below 
 
 ## 📅 Version History
 
-### v1.5.0 (Current) - November 2026
+### v1.6.0 (Current) - November 2026
+- On-time start at 08:00 UTC through an outside scheduler, once-a-day guard, healthchecks.io watchdog, test runs on GitHub (see HOSTING.md)
+
+### v1.5.0 - November 2026
 - Own on-chain engine for the six liquid staking tokens and the Storm Trade GRAM and USDT vaults
 - toncenter key as a secret; a wrong key is dropped and the run goes on without it
 - Only GRAM and its staking tokens as single tokens in the GRAM section

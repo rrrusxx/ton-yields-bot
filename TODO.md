@@ -6,8 +6,8 @@
 
 - [ ] **Align the on-chain windows to the validation round** (start of the round from config param 34 or Hipo's settled round, plus a fixed offset away from payout times), so a KTON or Bemo payout near "now" can never be miscounted.
 - [ ] **On-chain engine, part 2:** EVAA (`getAssetRates`) and Ethena tsUSDe on TON (`getTotalAssets`/`getTotalShares`).
-- [ ] **Run the daily job on time and with alerts.** GitHub starts the 08:00 UTC schedule 6-10 hours late, and public repos lose their schedule after 60 days without commits. Proposed: Supabase Cron + Edge Function + Postgres for history, plus a healthchecks.io watchdog that alerts in Telegram. GitHub Actions stays for code and manual runs.
-- [ ] **Reliability:** retries, one DefiLlama download per run, fallback rows when Swap.coffee fails, a source health summary, a guard against duplicate posts.
+- [ ] **Owner setup for the on-time start (v1.6.0, HOSTING.md):** a fine-grained GitHub token, the two cron-job.org jobs (08:00 and 08:30 UTC), the healthchecks.io check with Telegram and the `HC_PING_URL` secret; then shorten the check's grace time to 45 minutes. Optional: `TEST_TELEGRAM_*` secrets for test runs on GitHub.
+- [ ] **Reliability:** retries, one DefiLlama download per run, fallback rows when Swap.coffee fails, a source health summary.
 - [ ] Final check against Telegram's 4,096-character limit before sending, with a shorter fallback post.
 - [ ] Delete the old Deno Deploy project (hosting moved to GitHub Actions).
 - [ ] Ston.fi and Tonco pools from their own APIs or DefiLlama instead of Swap.coffee.
@@ -104,9 +104,9 @@
 
 ## 📝 Quick Notes
 
-**Production:** GitHub Actions (`.github/workflows/daily-post.yml`), cron `0 8 * * *` (08:00 UTC; GitHub usually starts it hours late)
+**Production:** GitHub Actions (`.github/workflows/daily-post.yml`), started at 08:00 and 08:30 UTC by cron-job.org through `workflow_dispatch` once the HOSTING.md setup is done; `daily-post-fallback.yml` keeps GitHub's late schedule. One post per UTC day.
 - Channel: @ton_yields_daily
-- A push to `main` becomes the next production post
+- A push to `main` is used by the next post (a run on a day whose post is already out does nothing)
 - History (7d averages, 24h TVL change) lives in Deno KV `./data/kv.db`, carried between runs by `actions/cache`
 
 **Development Setup:**

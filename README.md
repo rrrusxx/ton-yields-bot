@@ -60,10 +60,10 @@ Without a bot token (no `.env` in the current directory and no `TELEGRAM_BOT_TOK
 
 ## Deployment (GitHub Actions)
 
-`.github/workflows/daily-post.yml` runs `deno task post` once a day. It is scheduled for 08:00 UTC, but GitHub usually starts scheduled runs 6-10 hours late; it can also be started by hand (`workflow_dispatch`).
+`.github/workflows/daily-post.yml` runs `deno task post`. An outside scheduler (cron-job.org) starts it at 08:00 UTC through GitHub's `workflow_dispatch` API, with a retry at 08:30, because GitHub's own schedule starts runs hours late; `daily-post-fallback.yml` keeps that late schedule as a fallback. The bot posts at most once per UTC day, and a healthchecks.io watchdog alerts in Telegram when a post does not go out. Setup and day-to-day details: [HOSTING.md](HOSTING.md).
 
-1. Add repository secrets `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHANNEL_ID` (and optionally `TONCENTER_API_KEY`, which speeds up the on-chain engine).
-2. Push to `main`: the next scheduled run posts the new version.
+1. Add repository secrets `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHANNEL_ID` (and optionally `TONCENTER_API_KEY`, which speeds up the on-chain engine, `HC_PING_URL` for the watchdog, and `TEST_TELEGRAM_BOT_TOKEN` / `TEST_TELEGRAM_CHANNEL_ID` for test runs).
+2. Push to `main`: the next post uses the new version (a run on a day whose post is already out does nothing).
 
 The 7-day APY history and the 24h TVL change live in Deno KV (`./data/kv.db`), carried between runs by `actions/cache`.
 
@@ -73,6 +73,7 @@ The 7-day APY history and the 24h TVL change live in Deno KV (`./data/kv.db`), c
 - **[TODO.md](TODO.md)** - Quick task list
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
 - **[ONCHAIN_INTEGRATION.md](ONCHAIN_INTEGRATION.md)** - How liquid staking and Storm Trade vault yields are read from the contracts
+- **[HOSTING.md](HOSTING.md)** - How the daily run starts on time, the once-a-day guard, the watchdog, and the one-time setup
 - **[ETHENA_INTEGRATION.md](ETHENA_INTEGRATION.md)** - How the Ethena tsUSDe row is built
 - Removed TAC integrations, kept for reference: [MERKL_INTEGRATION.md](MERKL_INTEGRATION.md), [MORPHO_INTEGRATION.md](MORPHO_INTEGRATION.md), [EULER_INTEGRATION.md](EULER_INTEGRATION.md), [YIELDFI_INTEGRATION.md](YIELDFI_INTEGRATION.md)
 
