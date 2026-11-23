@@ -105,23 +105,23 @@ const OVERRIDE_RULES: OverrideRule[] = [
   },
 
   // --- Specific pools (aprBySource) ---
-  // Swap.coffee counts only the free balance of each Storm Trade vault (it
-  // leaves out funds locked against open trades, 9-20% of the vault on
-  // 2026-11-19) and updates it rarely, so both vaults take TVL from Palette.
-  // The GRAM vault APR comes from Palette too, like the USDT vault's.
+  // Storm Trade vaults: Palette's APR is Storm's own one-year figure. It
+  // applies to Swap.coffee's fallback rows only; the rows read from the vault
+  // contracts keep their own APY and TVL. Palette's TVL is not used: it adds
+  // the locked balance (traders' collateral) to the LPs' free balance, while
+  // Swap.coffee and Storm's app show the free balance (until 2026-11-23 the
+  // TVL came from Palette, on the wrong idea that the locked part was LP money).
   {
     key: "storm_vault_usdt",
     table: "aprBySource",
     label: "Storm Trade USDT vault",
     match: (y) => eq(y.source, "Storm Trade") && eq(y.asset, "USDT"),
-    tvlKey: "tvl:storm_vault_usdt",
   },
   {
     key: "storm_vault_ton",
     table: "aprBySource",
     label: "Storm Trade GRAM vault",
     match: (y) => eq(y.source, "Storm Trade") && (eq(y.asset, "GRAM") || eq(y.asset, "TON")),
-    tvlKey: "tvl:storm_vault_ton",
   },
   // Affluent USDT override removed (2026-11-20): Affluent was exploited, and
   // Palette's affluent_lending_vault_usdt value sits on a vault with only a

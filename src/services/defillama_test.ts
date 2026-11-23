@@ -1,6 +1,7 @@
 import { assertEquals } from "std/assert/mod.ts";
 import type { GroupedYields, YieldOpportunity } from "../types/yields.ts";
-import { dropNonFiniteApy, getTopYields } from "./defillama.ts";
+import { dropNonFiniteApy, filterCorrelatedOnly, getTopYields, mergeOnchainRows } from "./defillama.ts";
+import { preferOnchain } from "./onchain.ts";
 
 function row(overrides: Partial<YieldOpportunity>): YieldOpportunity {
   return {
@@ -86,4 +87,47 @@ Deno.test("rows whose APY is still not a number are dropped from every group", (
   assertEquals(dropNonFiniteApy(groups), 2);
   assertEquals(names(groups.TON), ["Tonstakers GRAM"]);
   assertEquals(groups.TON_USDT.length, 0);
+});
+
+Deno.test("DefiLlama single tokens unrelated to GRAM stay out of the GRAM section", () => {
+  const rows = [
+    row({ source: "EVAA", asset: "GRAM", poolMeta: "Main" }),
+    row({ source: "EVAA", asset: "TSTON", poolMeta: "Main" }),
+    row({ source: "Some Lender", asset: "STON" }), // classifyAsset puts it in the GRAM class
+    row({ source: "EVAA", asset: "USDT", assetType: "STABLE" }),
+    row({ source: "Some DEX", asset: "GRAM-tsTON" }),
+  ];
+  assertEquals(filterCorrelatedOnly(rows).map((y) => y.asset), ["GRAM", "TSTON", "USDT", "GRAM-tsTON"]);
+});
+
+Deno.test("Storm vault rows take part in the TOP-5 like any row (owner's decision of 2026-11-23)", () => {
+  // The Storm GRAM vault's 7-day APY reached 63.7% on 2026-10-30
+  const storm = row({ source: "Storm Trade", asset: "GRAM", poolMeta: "TON-SLP", apyTotal: 63.7, onChain: true });
+  const bemo = row({ source: "Bemo", asset: "GRAM-stTON", poolMeta: "stTON", apyTotal: 13.4 });
+  assertEquals(getTopYields(grouped([bemo, storm])).map((y) => y.source), ["Storm Trade", "Bemo"]);
+});
+
+Deno.test("on-chain rows go to the group of their asset class", () => {
+  const swapCoffee = () =>
+    grouped([
+      row({ source: "Storm Trade", asset: "GRAM", poolMeta: "TON-SLP", apyTotal: 8.77 }),
+      row({ source: "EVAA", asset: "GRAM", poolMeta: "Main", apyTotal: 6.9 }),
+      row({ source: "Storm Trade", asset: "USDT", assetType: "STABLE", apyTotal: 4.03 }),
+    ]);
+  const onchain = [
+    row({ source: "Storm Trade", asset: "GRAM", poolMeta: "TON-SLP", apyTotal: 4.81, onChain: true }),
+    row({ source: "Storm Trade", asset: "USDT", assetType: "STABLE", apyTotal: 1.18, onChain: true }),
+    row({ source: "Tonstakers", asset: "GRAM-tsTON", poolMeta: "tsTON", apyTotal: 12.06, onChain: true }),
+  ];
+  const label = (y: YieldOpportunity) => `${y.source} ${y.asset} ${y.apyTotal}`;
+  // The on-chain rows replace Swap.coffee's rows of the same vaults, each in its own section
+  const merged = swapCoffee();
+  mergeOnchainRows(merged, onchain, preferOnchain);
+  assertEquals(merged.TON.map(label), ["EVAA GRAM 6.9", "Storm Trade GRAM 4.81", "Tonstakers GRAM-tsTON 12.06"]);
+  assertEquals(merged.STABLE.map(label), ["Storm Trade USDT 1.18"]);
+  // Swap.coffee sent no Storm rows: the vaults are added, the USDT one to the stablecoins only
+  const empty = grouped([]);
+  mergeOnchainRows(empty, onchain.slice(0, 2), preferOnchain);
+  assertEquals(empty.TON.map(label), ["Storm Trade GRAM 4.81"]);
+  assertEquals(empty.STABLE.map(label), ["Storm Trade USDT 1.18"]);
 });

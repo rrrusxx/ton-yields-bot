@@ -5,7 +5,7 @@
 ## 🔥 Next
 
 - [ ] **Align the on-chain windows to the validation round** (start of the round from config param 34 or Hipo's settled round, plus a fixed offset away from payout times), so a KTON or Bemo payout near "now" can never be miscounted.
-- [ ] **On-chain engine, part 2:** EVAA (`getAssetRates`), Storm Trade vaults (`get_vault_data`, 30-day window) and Ethena tsUSDe on TON (`getTotalAssets`/`getTotalShares`). Optional: a free toncenter key as the `TONCENTER_API_KEY` secret.
+- [ ] **On-chain engine, part 2:** EVAA (`getAssetRates`) and Ethena tsUSDe on TON (`getTotalAssets`/`getTotalShares`).
 - [ ] **Run the daily job on time and with alerts.** GitHub starts the 08:00 UTC schedule 6-10 hours late, and public repos lose their schedule after 60 days without commits. Proposed: Supabase Cron + Edge Function + Postgres for history, plus a healthchecks.io watchdog that alerts in Telegram. GitHub Actions stays for code and manual runs.
 - [ ] **Reliability:** retries, one DefiLlama download per run, fallback rows when Swap.coffee fails, a source health summary, a guard against duplicate posts.
 - [ ] Final check against Telegram's 4,096-character limit before sending, with a shorter fallback post.
@@ -15,7 +15,9 @@
 
 ## ✅ Recently Completed
 
-- [x] **Own on-chain engine for the six LSTs** (v1.5.0, Nov 20, 2026): APY over the last cycle and "7d" over the last 5 cycles, both from the contracts, net of protocol fees; "⛓️ on-chain" in the footer; Swap.coffee and Palette as the fallback and cross-check
+- [x] **Own on-chain engine for the six LSTs** (v1.5.0, Nov 20, 2026): APY over the last cycle and "7d" over the last 5 cycles, both from the contracts, net of protocol fees; "⛓️ on-chain" in the footer; Swap.coffee and Palette as the fallback and cross-check; free toncenter key as the `TONCENTER_API_KEY` secret (a wrong key is dropped and the run goes on without it)
+- [x] **Storm Trade vaults read from their contracts** (v1.5.0, Nov 23, 2026): GRAM and USDT vaults, APY over the last 7 days from the LP rate, TVL = free balance (the LPs' pool; Palette's free + locked figure dropped); they no longer vanish when Swap.coffee leaves them out
+- [x] **Only GRAM-related single tokens in the GRAM section** (v1.5.0, Nov 20, 2026): one-token lending markets for unrelated jettons (HYDRA, KINGY, GRM, durev from Swap.coffee's coffin provider, in posts since June 2026) no longer land there; KTON and STAKED joined the list of GRAM staking tokens
 - [x] **P0 hotfix after the November 2026 audit** (v1.4.0, Nov 20, 2026)
   - [x] Hipo back in the post; allowlist knows GRAM-era tickers (hGRAM, tsGRAM, stGRAM, bmGRAM, wGRAM)
   - [x] TOP-5 rules: TVL from $10K, APY up to 100%, no hacked protocols, one place per protocol and asset class

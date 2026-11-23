@@ -35,16 +35,29 @@ Deno.test("Palette sets Hipo APR and TVL", () => {
 });
 
 Deno.test("Palette TVL applies even without a Palette APR, and bad values are ignored", () => {
-  const stormGram = row({ source: "Storm Trade", asset: "GRAM", poolMeta: "TON-SLP", apyTotal: 8.86, tvlUsd: 787_294 });
-  const stormUsdt = row({ source: "Storm Trade", asset: "USDT", assetType: "STABLE", apyTotal: 4.1, tvlUsd: 2_153_301 });
+  const hipo = row({ source: "Hipo", asset: "GRAM-hGRAM", poolMeta: "hGRAM", apyTotal: 17.06, tvlUsd: 7_510_490 });
+  applyPaletteOverrides(grouped([hipo]), palette({}, { "tvl:hGRAM": 9_097_736 }));
+  assertEquals([hipo.apyTotal, hipo.tvlUsd], [17.06, 9_097_736]);
+  const hipoBadTvl = row({ source: "Hipo", asset: "GRAM-hGRAM", poolMeta: "hGRAM", apyTotal: 17.06, tvlUsd: 7_510_490 });
+  applyPaletteOverrides(grouped([hipoBadTvl]), palette({ hGRAM: 17.045 }, { "tvl:hGRAM": Number.NaN }));
+  assertEquals([hipoBadTvl.apyTotal, hipoBadTvl.tvlUsd], [17.045, 7_510_490]);
+});
+
+Deno.test("Storm fallback rows take Palette's APR but keep their free-balance TVL", () => {
+  // Palette's Storm TVL adds traders' collateral (the locked balance) to the LPs' free balance
+  const stormGram = row({ source: "Storm Trade", asset: "GRAM", poolMeta: "TON-SLP", apyTotal: 8.86, tvlUsd: 758_577 });
+  const stormUsdt = row({ source: "Storm Trade", asset: "USDT", assetType: "STABLE", apyTotal: 4.1, tvlUsd: 2_138_571 });
   applyPaletteOverrides(
     grouped([stormGram], [stormUsdt]),
-    palette({}, { "tvl:storm_vault_ton": 978_014, storm_vault_usdt: 4.17, "tvl:storm_vault_usdt": Number.NaN }),
+    palette({}, {
+      storm_vault_ton: 8.77,
+      "tvl:storm_vault_ton": 931_000,
+      storm_vault_usdt: 4.03,
+      "tvl:storm_vault_usdt": 2_345_010,
+    }),
   );
-  assertEquals(stormGram.apyTotal, 8.86);
-  assertEquals(stormGram.tvlUsd, 978_014);
-  assertEquals(stormUsdt.apyTotal, 4.17);
-  assertEquals(stormUsdt.tvlUsd, 2_153_301);
+  assertEquals([stormGram.apyTotal, stormGram.tvlUsd], [8.77, 758_577]);
+  assertEquals([stormUsdt.apyTotal, stormUsdt.tvlUsd], [4.03, 2_138_571]);
 });
 
 Deno.test("Palette replaces a non-numeric APR", () => {

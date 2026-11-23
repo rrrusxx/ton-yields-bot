@@ -15,8 +15,10 @@ import {
   classifyAsset,
   getProtocolUrl,
   isCorrelatedPair,
+  leftOutNote,
   pairBelongsToCategory,
   isSingleAsset,
+  isSingleAssetInCategory,
   isExcludedAsset,
   isTonUsdtPool,
 } from "./protocols.ts";
@@ -139,7 +141,7 @@ function getAssetSymbol(pool: SwapCoffeePool): string {
   
   // LST protocols: 2 tokens where one is underlying and one is receipt token
   // (native token renamed TON -> GRAM)
-  // Storm Trade: ["GRAM", "GRAM-SLP"] → show as "GRAM"
+  // Storm Trade: ["GRAM", "TON-SLP"] → show as "GRAM"
   // KTON: ["GRAM", "KTON"] → show as "GRAM"
   // Stakee: ["GRAM", "STAKED"] → show as "GRAM"
   // Bemo: ["GRAM", "stTON"] or ["GRAM", "bmTON"] → already handled by getPoolMeta
@@ -196,7 +198,7 @@ function getPoolMeta(pool: SwapCoffeePool): string | null {
     // For LST protocols, show the derivative token
     // KTON: ["GRAM", "KTON"] → show "KTON"
     // Stakee: ["GRAM", "STAKED"] → show "STAKED"
-    // Storm Trade: ["GRAM", "GRAM-SLP"] → show "GRAM-SLP"
+    // Storm Trade: ["GRAM", "TON-SLP"] → show "TON-SLP"
     // Bemo: ["GRAM", "stTON"] → show "stTON"
     const tonIndex = symbols.findIndex(s => isNativeSymbol(s));
     if (tonIndex !== -1) {
@@ -300,14 +302,20 @@ export function transformSwapCoffeePool(pool: SwapCoffeePool): YieldOpportunity 
 }
 
 /**
- * Filter for correlated pairs only (prevent impermanent loss)
+ * Filter for correlated pairs only (prevent impermanent loss), and single
+ * tokens that belong to their section
  */
-function filterCorrelatedPools(
+export function filterCorrelatedPools(
   pools: YieldOpportunity[],
 ): YieldOpportunity[] {
   return pools.filter((pool) => {
-    // Single assets always included
-    if (isSingleAsset(pool.asset)) return true;
+    // Single assets stay only in their own section: in the GRAM section,
+    // GRAM and its staking tokens (see isSingleAssetInCategory)
+    if (isSingleAsset(pool.asset)) {
+      if (isSingleAssetInCategory(pool.asset, pool.assetType)) return true;
+      console.warn(`  ↳ Swap.coffee ${pool.source} ${leftOutNote(pool.asset, pool.assetType)}`);
+      return false;
+    }
     
     // TON-USDT pools are included (shown in separate category)
     if (pool.isTonUsdtPool) return true;

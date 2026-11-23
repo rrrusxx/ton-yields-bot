@@ -212,7 +212,9 @@ const BTC_ASSETS = [
  * We match these EXACTLY (not by substring) so that lookalike tokens which
  * merely contain "TON"/"GRAM" as a substring — e.g. STON, GEMSTON, sTONks,
  * TONNEL, JETTON — are never treated as native and grouped into the GRAM
- * section. Add a new symbol here only if it is a genuine TON LST.
+ * section. Single tokens in the GRAM section are checked against this list
+ * too (isSingleAssetInCategory). Add a new symbol here only if it is a
+ * genuine TON LST.
  *
  * Keep both ticker generations. After the TON -> GRAM rename (June 2026)
  * providers switch tickers one by one: Swap.coffee started returning Hipo as
@@ -235,6 +237,9 @@ const NATIVE_TON_ASSETS = new Set([
   "HGRAM",
   "BMGRAM",
   "WGRAM",
+  // KTON's and Stakee's tokens (their tickers did not change with the rename)
+  "KTON",
+  "STAKED",
 ]);
 
 /**
@@ -385,6 +390,26 @@ export function isSingleAsset(symbol: string): boolean {
 }
 
 /**
+ * Whether a single token belongs to a section. In the GRAM section only GRAM
+ * itself and its liquid staking tokens count, by the same exact-ticker list
+ * as pairs: classifyAsset() puts every symbol it does not recognise into the
+ * GRAM class, so one-token lending markets for unrelated jettons (HYDRA,
+ * KINGY, GRM and durev from Swap.coffee's "coffin" provider, in the posts of
+ * 2026-06-01 to 2026-11-11) used to land there. GRM is the jetton "Grm", not
+ * GRAM. The other sections keep classifyAsset()'s rules.
+ */
+export function isSingleAssetInCategory(symbol: string, assetType: AssetType): boolean {
+  return assetType === "TON" ? isNativeTonAsset(symbol) : classifyAsset(symbol) === assetType;
+}
+
+/** Log line for a single token left out of its section */
+export function leftOutNote(asset: string, assetType: AssetType): string {
+  return assetType === "TON"
+    ? `${asset}: left out of the GRAM section (not GRAM or a listed GRAM staking token)`
+    : `${asset}: left out of the ${assetType} section`;
+}
+
+/**
  * Parse LP pair symbol into two assets
  * e.g., "TON-USDT" -> ["TON", "USDT"]
  */
@@ -495,7 +520,7 @@ export function isCorrelatedPair(symbol: string, assetType: AssetType): boolean 
 export function pairBelongsToCategory(symbol: string, assetType: AssetType): boolean {
   // Single assets - check directly
   if (isSingleAsset(symbol)) {
-    return classifyAsset(symbol) === assetType;
+    return isSingleAssetInCategory(symbol, assetType);
   }
   
   const pair = parseLpPair(symbol);

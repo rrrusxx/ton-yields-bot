@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "std/assert/mod.ts";
-import { type SwapCoffeePool, transformSwapCoffeePool } from "./swapcoffee.ts";
+import { filterCorrelatedPools, type SwapCoffeePool, transformSwapCoffeePool } from "./swapcoffee.ts";
 
 const token = (symbol: string) => ({
   address: { blockchain: "ton", address: `addr-${symbol}` },
@@ -47,4 +47,40 @@ Deno.test("other Ston.fi pools and liquid staking rows keep their token label", 
   assertEquals([stonfiLst.asset, stonfiLst.poolMeta], ["GRAM-tsTON", "tsTON"]);
   const y = transformSwapCoffeePool(pool({}))!;
   assertEquals([y.asset, y.poolMeta], ["GRAM-tsTON", "tsTON"]);
+});
+
+Deno.test("single tokens unrelated to GRAM stay out of the GRAM section", () => {
+  // Shaped like the "coffin" one-token markets recorded on 2026-11-20 and 21
+  const coffin = (symbol: string, tvl: number, apr: number) =>
+    transformSwapCoffeePool({
+      ...pool({ tvl_usd: tvl, apr, lp_apr: apr }),
+      protocol: "coffin",
+      address: `coffin-${symbol}`,
+      tokens: [token(symbol)],
+    })!;
+  const stakee = transformSwapCoffeePool({
+    ...pool({ apr: 14.3, lp_apr: 14.3 }),
+    protocol: "stakee",
+    tokens: [token("GRAM"), token("STAKED")],
+  })!;
+  const rows = [
+    coffin("HYDRA", 2546, 4.15),
+    coffin("KINGY", 2352, 0.12),
+    coffin("GRM", 1300, 6.4), // the jetton "Grm", not GRAM
+    coffin("GRAM", 294, 5.71),
+    coffin("KTON", 5000, 3.1), // a GRAM staking token stays
+    coffin("USDT", 2066, 6.87),
+    stakee,
+  ];
+  assertEquals(rows.map((y) => `${y.asset} ${y.assetType}`), [
+    "HYDRA TON",
+    "KINGY TON",
+    "GRM TON",
+    "GRAM TON",
+    "KTON TON",
+    "USDT STABLE",
+    "GRAM TON",
+  ]);
+  const kept = filterCorrelatedPools(rows);
+  assertEquals(kept.map((y) => `${y.source} ${y.asset}`), ["coffin GRAM", "coffin KTON", "coffin USDT", "Stakee GRAM"]);
 });

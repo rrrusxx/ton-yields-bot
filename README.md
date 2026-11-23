@@ -15,10 +15,10 @@ Link - https://t.me/ton_yields_daily
 
 ## Data Sources
 
-- **On-chain** (contracts read through toncenter): APY, 7-day APY and TVL of the six liquid staking tokens, see [ONCHAIN_INTEGRATION.md](ONCHAIN_INTEGRATION.md)
+- **On-chain** (contracts read through toncenter): APY, 7-day APY and TVL of the six liquid staking tokens, and APY over the last 7 days and TVL of the Storm Trade GRAM and USDT vaults, see [ONCHAIN_INTEGRATION.md](ONCHAIN_INTEGRATION.md)
 - **DefiLlama**: EVAA and other TON pools, Ethena sUSDe APY and tsUSDe TVL on TON, the GRAM price, the header TVL
-- **Swap.coffee**: Storm Trade, Ston.fi and Tonco pools, and the fallback for liquid staking rows
-- **Palette**: APR and TVL overrides for the pools it covers (Storm Trade vaults, EVAA); for the six liquid staking tokens only when they fall back to Swap.coffee, otherwise a logged cross-check
+- **Swap.coffee**: Ston.fi and Tonco pools, and the fallback for liquid staking and Storm Trade rows
+- **Palette**: APR overrides for EVAA's USDT pools; for the liquid staking tokens (APR, and Hipo's TVL) and the Storm Trade vaults (APR) only when they fall back to Swap.coffee, otherwise a logged cross-check
 - **GTC (Gift To Credit)**: GRAM and USDT lending vaults
 - **DeDust**: GRAM-USDT pools (and impermanent-loss-free pairs from $10K TVL), from DeDust's own API
 
@@ -72,7 +72,7 @@ The 7-day APY history and the 24h TVL change live in Deno KV (`./data/kv.db`), c
 - **[ROADMAP.md](ROADMAP.md)** - Status, plan and known issues
 - **[TODO.md](TODO.md)** - Quick task list
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
-- **[ONCHAIN_INTEGRATION.md](ONCHAIN_INTEGRATION.md)** - How liquid staking yields are read from the contracts
+- **[ONCHAIN_INTEGRATION.md](ONCHAIN_INTEGRATION.md)** - How liquid staking and Storm Trade vault yields are read from the contracts
 - **[ETHENA_INTEGRATION.md](ETHENA_INTEGRATION.md)** - How the Ethena tsUSDe row is built
 - Removed TAC integrations, kept for reference: [MERKL_INTEGRATION.md](MERKL_INTEGRATION.md), [MORPHO_INTEGRATION.md](MORPHO_INTEGRATION.md), [EULER_INTEGRATION.md](EULER_INTEGRATION.md), [YIELDFI_INTEGRATION.md](YIELDFI_INTEGRATION.md)
 

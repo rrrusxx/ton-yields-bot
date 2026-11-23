@@ -13,7 +13,9 @@ import {
   formatProtocolName,
   getProtocolUrl,
   isSingleAsset,
+  isSingleAssetInCategory,
   isCorrelatedPair,
+  leftOutNote,
   pairBelongsToCategory,
   isExcludedAsset,
   isHackedProtocol,
@@ -103,20 +105,23 @@ function filterValidPools(pools: YieldOpportunity[]): YieldOpportunity[] {
 
 /**
  * Filter pools to only include:
- * - Single assets (lending, staking)
+ * - Single assets (lending, staking) that belong to their section
  * - LP pairs with correlated assets (no IL risk)
  * Excludes TON-USDT pools (they go in separate category)
  */
-function filterCorrelatedOnly(pools: YieldOpportunity[]): YieldOpportunity[] {
+export function filterCorrelatedOnly(pools: YieldOpportunity[]): YieldOpportunity[] {
   return pools.filter(pool => {
     // Exclude TON-USDT pools (handled separately)
     if (pool.isTonUsdtPool) {
       return false;
     }
-    
-    // Single assets are always included
+
+    // Single assets stay only in their own section: in the GRAM section,
+    // GRAM and its staking tokens (see isSingleAssetInCategory)
     if (isSingleAsset(pool.asset)) {
-      return true;
+      if (isSingleAssetInCategory(pool.asset, pool.assetType)) return true;
+      console.warn(`  ↳ DefiLlama ${pool.source} ${leftOutNote(pool.asset, pool.assetType)}`);
+      return false;
     }
     
     // For LP pairs, check if both assets belong to the same category
@@ -355,6 +360,23 @@ async function fetchDefiLlamaYields(): Promise<GroupedYields> {
 }
 
 /**
+ * Merge, in place, the rows computed from the contracts into their groups:
+ * each on-chain row goes to the group of its asset class (the Storm USDT vault
+ * to the stablecoins; the LSTs and the Storm GRAM vault to GRAM), where
+ * `merge` (preferOnchain) replaces the fallback row of the same pool or adds
+ * the row.
+ */
+export function mergeOnchainRows(
+  grouped: GroupedYields,
+  onchain: YieldOpportunity[],
+  merge: (rows: YieldOpportunity[], onchain: YieldOpportunity[]) => YieldOpportunity[],
+): void {
+  for (const assetType of ["TON", "STABLE", "BTC", "ETH"] as const) {
+    grouped[assetType] = merge(grouped[assetType], onchain.filter((y) => y.assetType === assetType));
+  }
+}
+
+/**
  * Remove, in place, every row whose APY is not a finite number, with a
  * warning per row. Returns the number of rows removed.
  */
@@ -372,8 +394,8 @@ export function dropNonFiniteApy(grouped: GroupedYields): number {
 }
 
 /**
- * Fetch and process all TON yields: LSTs on-chain (own engine, with Swap.coffee
- * as the fallback), DefiLlama, Swap.coffee, Ethena, GTC and DeDust, then apply
+ * Fetch and process all TON yields: LSTs and the Storm Trade vaults on-chain
+ * (own engine, with Swap.coffee as the fallback), DefiLlama, Swap.coffee, Ethena, GTC and DeDust, then apply
  * Palette APR and TVL overrides to the rows not computed on-chain.
  * Returns yields grouped by asset type.
  *
@@ -388,7 +410,7 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   const { fetchSwapCoffeeYields } = await import("./swapcoffee.ts");
   const { fetchGtcYields } = await import("./gtc.ts");
   const { fetchDedustYields } = await import("./dedust.ts");
-  const { fetchOnchainLstYields, preferOnchain } = await import("./onchain.ts");
+  const { fetchOnchainYields, preferOnchain } = await import("./onchain.ts");
   const { fetchPaletteData, applyPaletteOverrides } = await import("./palette.ts");
 
   // Fetch from all sources in parallel
@@ -398,7 +420,7 @@ export async function fetchTonYields(): Promise<GroupedYields> {
     fetchSwapCoffeeYields(),
     fetchGtcYields(),
     fetchDedustYields(),
-    fetchOnchainLstYields(),
+    fetchOnchainYields(),
     fetchPaletteData(),
   ]);
 
@@ -448,11 +470,13 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   // "NaN" APR that no Palette override replaced); they would print as "NaN%".
   dropNonFiniteApy(defiLlamaYields);
 
-  // LST rows computed from the contracts replace the fallback rows of the same
-  // LSTs (Swap.coffee, already with Palette's APR and TVL). An LST the engine
-  // could not read keeps its fallback row; without a GRAM price an on-chain row
-  // takes the fallback row's (Palette-corrected) TVL.
-  defiLlamaYields.TON = preferOnchain(defiLlamaYields.TON, onchainYields);
+  // Rows computed from the contracts (the LSTs and the Storm Trade vaults)
+  // replace the fallback rows of the same pools (Swap.coffee, already with
+  // Palette's APR and TVL) and stand in when Swap.coffee leaves a pool out.
+  // A pool the engine could not read keeps its fallback row; without a GRAM
+  // price an on-chain row takes the fallback row's TVL (Palette's for Hipo,
+  // Swap.coffee's free balance for the Storm GRAM vault).
+  mergeOnchainRows(defiLlamaYields, onchainYields, preferOnchain);
 
   // Re-sort after merging
   defiLlamaYields.TON = sortByTvl(defiLlamaYields.TON);
