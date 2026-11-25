@@ -7,6 +7,8 @@
  * - Excludes: CEXs, Liquid Staking Tokens (LST/LSD)
  */
 
+import { config } from "../config.ts";
+
 interface DefiLlamaProtocol {
   name: string;
   chains: string[];
@@ -54,7 +56,7 @@ function isExcludedProtocol(protocol: DefiLlamaProtocol): boolean {
  */
 export async function fetchTonTVL(): Promise<number> {
   try {
-    const response = await fetch(DEFILLAMA_PROTOCOLS_API, { signal: AbortSignal.timeout(15000) });
+    const response = await fetch(DEFILLAMA_PROTOCOLS_API, { signal: AbortSignal.timeout(config.defiLlamaTimeoutMs) });
     
     if (!response.ok) {
       throw new Error(`DefiLlama API error: ${response.status} ${response.statusText}`);

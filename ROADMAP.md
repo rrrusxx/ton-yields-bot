@@ -4,7 +4,7 @@
 
 Telegram bot that aggregates yield opportunities from TON DeFi (the TON coin is called GRAM since June 2026), posting daily summaries to a Telegram channel.
 
-**Current Version:** v1.6.0  
+**Current Version:** v1.6.1  
 **Status:** ✅ In production (GitHub Actions; from v1.6.0 started at 08:00 UTC by cron-job.org once the owner finishes the setup in HOSTING.md, until then by GitHub's late fallback schedule)
 
 ---
@@ -213,7 +213,11 @@ For the current order of work see "Status and Plan" at the top. The lists below 
 
 ## 📅 Version History
 
-### v1.6.0 (Current) - November 2026
+### v1.6.1 (Current) - November 2026
+- GTC no longer credited in the footer's sources line
+- DefiLlama requests wait up to 90 s (its cold cache took 56 s on 2026-11-24)
+
+### v1.6.0 - November 2026
 - On-time start at 08:00 UTC through an outside scheduler, once-a-day guard, healthchecks.io watchdog, test runs on GitHub (see HOSTING.md)
 
 ### v1.5.0 - November 2026

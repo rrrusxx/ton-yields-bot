@@ -5,6 +5,14 @@ All notable changes to TON Yields Bot will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.1] - 2026-11-25
+
+### Changed
+- GTC is no longer credited in the footer's sources line (owner's choice); its rows stay in the post. The line now reads "📊 ⛓️ on-chain · DefiLlama · Swap.coffee · Palette" and the time.
+
+### Fixed
+- DefiLlama requests (the yields file, the protocols list for the header TVL, the tsUSDe listing) now wait up to 90 s instead of 15-20 s (`config.defiLlamaTimeoutMs`). On 2026-11-24 DefiLlama's cold cache took 56 s for the yields file, so a test post failed outright, and the protocols list took 14 s against 15 s, so the next one went out without the header TVL. The GRAM price request keeps its 10 s limit (it has a CoinGecko fallback).
+
 ## [1.6.0] - 2026-11-23
 
 ### Added

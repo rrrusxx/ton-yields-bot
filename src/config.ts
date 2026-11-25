@@ -52,7 +52,15 @@ export const config = {
   
   /** DefiLlama API endpoint for yields */
   defiLlamaApiUrl: "https://yields.llama.fi/pools",
-  
+
+  /**
+   * How long to wait for a DefiLlama response (yields, protocols, the
+   * tsUSDe listing). Its cache is slow when cold: on 2026-11-24 the 10 MB
+   * yields file took 56 s and the protocols list 14 s, against limits of
+   * 20 s and 15 s, and the yields file is required for the post.
+   */
+  defiLlamaTimeoutMs: 90_000,
+
   /** Chain to filter (TON blockchain) */
   chain: "TON",
   

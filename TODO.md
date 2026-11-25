@@ -15,6 +15,8 @@
 
 ## ✅ Recently Completed
 
+- [x] **DefiLlama requests wait up to 90 s** (v1.6.1, Nov 25, 2026): its cold cache took 56 s on Nov 24 against the old 20 s limit and failed a test post
+- [x] **GTC removed from the footer's sources line** (v1.6.1, Nov 24, 2026; owner's choice, GTC rows stay in the post)
 - [x] **Own on-chain engine for the six LSTs** (v1.5.0, Nov 20, 2026): APY over the last cycle and "7d" over the last 5 cycles, both from the contracts, net of protocol fees; "⛓️ on-chain" in the footer; Swap.coffee and Palette as the fallback and cross-check; free toncenter key as the `TONCENTER_API_KEY` secret (a wrong key is dropped and the run goes on without it)
 - [x] **Storm Trade vaults read from their contracts** (v1.5.0, Nov 23, 2026): GRAM and USDT vaults, APY over the last 7 days from the LP rate, TVL = free balance (the LPs' pool; Palette's free + locked figure dropped); they no longer vanish when Swap.coffee leaves them out
 - [x] **Only GRAM-related single tokens in the GRAM section** (v1.5.0, Nov 20, 2026): one-token lending markets for unrelated jettons (HYDRA, KINGY, GRM, durev from Swap.coffee's coffin provider, in posts since June 2026) no longer land there; KTON and STAKED joined the list of GRAM staking tokens

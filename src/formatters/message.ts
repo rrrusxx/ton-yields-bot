@@ -511,9 +511,7 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   sections.push(SEPARATOR);
   sections.push("");
   sections.push("<i>APY (7d avg) ↑↓ | UR = Utilisation Rate (🔥 if &gt;95%) | TVL · ⚠️ low TVL (&lt;$10K) · 🚨 hacked protocol</i>");
-  // "⛓️ on-chain" only when the post really has rows read from contracts
-  const onChain = allPools.some((y) => y.onChain) ? "⛓️ on-chain · " : "";
-  sections.push(`<i>📊 ${onChain}<a href="https://defillama.com/">DefiLlama</a> · <a href="https://swap.coffee/">Swap.coffee</a> · <a href="https://palette.finance/">Palette</a> · <a href="https://giftcredit.app/">GTC</a> · ${getCurrentTimeUTC()}</i>`);
+  sections.push(formatSourcesLine(allPools, getCurrentTimeUTC()));
   
   return sections.join("\n");
 }
@@ -521,6 +519,17 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
 /**
  * Format a simple test message
  */
+/**
+ * The footer's sources line. It credits DefiLlama, Swap.coffee and Palette;
+ * DeDust and GTC are not credited there (owner's choices of 2026-11-20 and
+ * 2026-11-24), although their rows stay in the post. "⛓️ on-chain" comes
+ * first, only when the post really has rows read from contracts.
+ */
+export function formatSourcesLine(rows: YieldOpportunity[], time: string): string {
+  const onChain = rows.some((y) => y.onChain) ? "⛓️ on-chain · " : "";
+  return `<i>📊 ${onChain}<a href="https://defillama.com/">DefiLlama</a> · <a href="https://swap.coffee/">Swap.coffee</a> · <a href="https://palette.finance/">Palette</a> · ${time}</i>`;
+}
+
 export function formatTestMessage(): string {
   return `<b>TON Yields Bot</b>\n\nBot is running!\n\n<i>Test message sent at ${getCurrentTimeUTC()}</i>`;
 }

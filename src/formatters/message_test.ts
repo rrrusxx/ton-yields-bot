@@ -4,6 +4,7 @@ import {
   displayText,
   escapeHtml,
   formatCategorySection,
+  formatSourcesLine,
   formatTopYieldsSection,
   organizeByProtocol,
 } from "./message.ts";
@@ -104,4 +105,15 @@ Deno.test("an on-chain row without a trustworthy 7d value shows none, even with 
   const averages = new Map<YieldOpportunity, number>([[onchain, 13.0]]);
   const section = formatCategorySection("💎 GRAM AND RELATED ASSETS", organizeByProtocol([onchain]), averages);
   assertStringIncludes(section, "└ GRAM (KTON): 13.4% | $2.0M");
+});
+
+Deno.test("the sources line credits DefiLlama, Swap.coffee and Palette, not DeDust or GTC", () => {
+  const onChain = formatSourcesLine([row({ source: "Hipo", onChain: true }), row({ source: "GTC" })], "17:48 UTC");
+  assertEquals(
+    onChain.replace(/<[^>]+>/g, ""),
+    "📊 ⛓️ on-chain · DefiLlama · Swap.coffee · Palette · 17:48 UTC",
+  );
+  assertFalse(onChain.includes("GTC") || onChain.includes("giftcredit") || onChain.includes("DeDust"));
+  // Without rows read from contracts there is no "on-chain" credit
+  assertFalse(formatSourcesLine([row({ source: "GTC" })], "17:48 UTC").includes("on-chain"));
 });

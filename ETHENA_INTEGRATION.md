@@ -61,6 +61,7 @@ Ethena
 
 - A failed APY request returns no Ethena row and does not break the post.
 - A failed TVL request hides the TVL only.
+- Both requests wait up to 90 s (`config.defiLlamaTimeoutMs`, since v1.6.1). DefiLlama's cache is slow when cold: on 2026-11-24 the yields file took 56 s, and with the old 20 s limit the run lost its Ethena row and the whole post.
 
 ## Future Enhancements
 

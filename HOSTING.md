@@ -6,7 +6,7 @@ The bot runs on GitHub Actions. GitHub's own schedule starts runs hours late (th
 
 | Time (UTC) | What happens |
 |---|---|
-| 08:00 | cron-job.org calls GitHub's `workflow_dispatch` API for `daily-post.yml`. The run starts within seconds and posts in about 15-20 s. After Telegram accepts the message, the bot records the day in its KV store and sends "success" to the watchdog. |
+| 08:00 | cron-job.org calls GitHub's `workflow_dispatch` API for `daily-post.yml`. The run starts within seconds and usually posts within a minute or two (DefiLlama is given up to 90 s per request, since its cache can be slow). After Telegram accepts the message, the bot records the day in its KV store and sends "success" to the watchdog. |
 | 08:30 | cron-job.org calls again, as a retry. If the post already went out, the run finds the day's marker and stops ("success" again, nothing posted). If it did not, this run posts. |
 | 08:45 | If the watchdog has had no success since 08:00 (or got a "fail" signal at any time), healthchecks.io sends an alert to Telegram. |
 | hours later | `daily-post-fallback.yml`, on GitHub's own late schedule, starts `daily-post.yml` once more. It stops at once if the day's post is out; if both outside calls failed, it posts, late but the same day. |

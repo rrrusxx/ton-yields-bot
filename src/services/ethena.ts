@@ -1,3 +1,4 @@
+import { config } from "../config.ts";
 import {
   classifyAsset,
   getProtocolUrl,
@@ -12,7 +13,7 @@ const ETHENA_TON_PROTOCOL_URL = "https://api.llama.fi/protocol/ethena-tsusde";
 
 // Fetch Ethena sUSDe pools from DefiLlama
 async function fetchEthenaPools(): Promise<DefiLlamaPool[]> {
-  const response = await fetch(DEFILLAMA_API_URL, { signal: AbortSignal.timeout(20000) });
+  const response = await fetch(DEFILLAMA_API_URL, { signal: AbortSignal.timeout(config.defiLlamaTimeoutMs) });
 
   if (!response.ok) {
     await response.body?.cancel();
@@ -40,7 +41,7 @@ async function fetchEthenaPools(): Promise<DefiLlamaPool[]> {
  */
 async function fetchEthenaTonTvl(): Promise<number | null> {
   try {
-    const response = await fetch(ETHENA_TON_PROTOCOL_URL, { signal: AbortSignal.timeout(15000) });
+    const response = await fetch(ETHENA_TON_PROTOCOL_URL, { signal: AbortSignal.timeout(config.defiLlamaTimeoutMs) });
     if (!response.ok) {
       await response.body?.cancel();
       console.warn(`Ethena TON TVL: HTTP ${response.status} ${response.statusText}`);
