@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Production is started at 08:00 UTC by a cron-job.org job, set up on 2026-11-25 (its test run got 204 from GitHub and the run stopped on the day's marker). The 08:30 retry job and the healthchecks.io watchdog are not set up for now (owner's choice). HOSTING.md gains a "Current setup" table and a corrected note on GitHub's API versions.
+- HOSTING.md setup steps checked against the live sites on 2026-11-25: GitHub's permission picker (since 2025-08-26) and expiry choices, plus a pre-filled link for renewing the token; cron-job.org's three editor tabs, its off-by-default failure email (on the "Notifications" tab) and its auto-disable after more than 25 failures; healthchecks.io's dialogs, Telegram flow, alert rules and the deletion of accounts without a log-in for a year.
 
 ## [1.6.1] - 2026-11-25
 

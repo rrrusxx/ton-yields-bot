@@ -32,47 +32,60 @@ Everything below is done by the owner; tokens and ping URLs are typed by him onl
 
 ### 1. GitHub token for the scheduler
 
-GitHub > Settings > Developer settings > Personal access tokens > Fine-grained tokens > Generate new token:
+Open https://github.com/settings/personal-access-tokens/new (the long way: profile picture > Settings > "Developer settings" at the bottom of the left sidebar > Personal access tokens > Fine-grained tokens > Generate new token). GitHub may first ask to confirm access (passkey, security key, GitHub Mobile, an authenticator code or the password; text-message codes are not accepted). Labels below were checked on 2026-11-25.
 
-- Name: `ton-yields dispatch`; Resource owner: your account.
-- Expiration: 366 days, with a calendar reminder to make a new one (when it expires, the 08:00 post stops; the fallback and the watchdog still work). The token lives at a third party, so an expiry date is safer than "No expiration".
-- Repository access: Only select repositories > `ton-yields-bot`.
-- Permissions: Repository permissions > Actions > Read and write. Nothing else (Metadata read-only comes along).
+- Token name: `ton-yields dispatch`. Resource owner: your account (the default).
+- Expiration: "Custom", a date up to one year ahead (the menu offers 7, 30, 60 and 90 days, Custom and No expiration; a custom date more than a year away makes "Generate token" silently do nothing). Set a calendar reminder a week before it. When the token expires, every cron-job.org call gets 401 and the post comes only from the late fallback. The token lives at a third party, so an expiry date is safer than "No expiration".
+- Repository access: "Only select repositories", then pick `ton-yields-bot` in the repository list that appears under it.
+- Permissions (a picker since 2025-08-26): on the repository tab click "Add permissions", search for "Actions" and select it, then change its access from "Read-only" (the default) to "Read and write". Do not take "Workflows" instead: it cannot start runs. Nothing else; "Metadata" (read-only) comes along.
+- Click "Generate token" (and again in the confirmation, if one appears), then copy the token, which starts with `github_pat_` and is shown only once, straight into cron-job.org.
 
-Anyone with this token can start production runs at will, including forced reposts to @ton_yields_daily, re-run or cancel runs, switch the workflows off and delete the caches (the 7-day history and the day's marker). It cannot read secrets or change code. If it leaks, delete it under Developer settings > Fine-grained tokens and make a new one.
+To renew, https://github.com/settings/personal-access-tokens/new?name=ton-yields+dispatch&expires_in=366&actions=write pre-fills the name, 366 days and Actions read and write. The repository still has to be picked; check the resource owner and the Actions row before "Generate token". Then replace the token in the job's `Authorization` header (Advanced tab, "Save") and delete the old token. GitHub also revokes a fine-grained token that goes unused for a year or is pushed to a public repository or gist.
+
+Anyone with this token can start production runs at will, including forced reposts to @ton_yields_daily, re-run, cancel or delete runs, switch the workflows off and delete the caches (the 7-day history and the day's marker). It cannot read secrets or change code. If it leaks, delete it ("Delete" next to it under Fine-grained tokens) and make a new one.
 
 ### 2. cron-job.org
 
-Create a free account (turn on two-factor authentication), then two cron jobs with the same settings except the time:
+Create a free account at https://console.cron-job.org/signup (`?lng=en` gives English labels) and confirm it through the emailed link before signing in. Recommended: Settings > "Multi-Factor Authentication devices" > "Add device" (no backup codes are issued), and Settings > "Default timezone" > UTC (it applies to new jobs only).
 
-| Field | Value |
-|---|---|
-| Title | `TON Yields 08:00` (and `TON Yields 08:30`) |
-| URL | `https://api.github.com/repos/rrrusxx/ton-yields-bot/actions/workflows/daily-post.yml/dispatches` |
-| Schedule | every day at 08:00 (and 08:30); set the job's time zone to UTC (in cron-job.org it is on the job's Advanced tab, and a new job starts in the account's time zone) |
-| Request method | POST |
-| Headers | `Accept: application/vnd.github+json`, `Authorization: Bearer <the token from step 1>`, `Content-Type: application/json`. No `X-GitHub-Api-Version` header: without it GitHub uses its default version, 2022-11-28, supported until 2028-03-10 (its answers carry `Deprecation` and `Sunset` headers since version 2026-03-10 came out), and after that a newer supported one, where this call answers 200 with the run's details instead of 204. A pinned version would get 410 Gone once its support ends. |
-| Request body | `{"ref":"main"}` |
-| Notifications | on failure, and when the job is disabled |
+Then "Cronjobs" > "Create cronjob". The editor has three tabs, and leaving it before "Create" loses everything typed, without a warning. Labels below were checked on 2026-11-25.
 
-GitHub answers a correct call with HTTP 204 (no content; 200 with the run's id is fine too). The job's "Test run" starts a real production run within seconds: if the day's post is not out yet, it posts it (later runs that day then stop); if it is out, the run stops at once. On the day of the switch to v1.6.0, do not press it (see below).
+| Tab | Field | Value |
+|---|---|---|
+| Common | Title | `TON Yields 08:00` (and `TON Yields 08:30` for the optional retry job) |
+| Common | URL | `https://api.github.com/repos/rrrusxx/ton-yields-bot/actions/workflows/daily-post.yml/dispatches` (in place of the pre-filled `http://`) |
+| Common | Enable job; Save responses in job history | on; on (the second is off by default, and without it the history shows only the status code) |
+| Common | Execution schedule | "Every day at" 8 : 00 (and 8 : 30) |
+| Notifications | execution of the cronjob fails | on (off by default); keep "the cronjob will be disabled because of too many failures" on (the default) |
+| Advanced | Headers | "Add" once per header, the name in "Key" and the value in "Value": `Accept` = `application/vnd.github+json`, `Authorization` = `Bearer <the token from step 1>`, `Content-Type` = `application/json`. A row with an empty Key or Value is dropped silently. |
+| Advanced | Time zone | UTC, the last entry (a new job starts in the account's time zone). On Common, "Next executions" should then note "In this job's individual timezone (UTC)." |
+| Advanced | Request method | POST (the default is GET; the body is editable only after this) |
+| Advanced | Request body | `{"ref":"main"}` |
+
+Then "Create". For the retry job, open the first job with "Edit" > "Actions" > "Clone": the copy starts disabled; change its title and minute, switch "Enable job" on and "Save".
+
+No `X-GitHub-Api-Version` header: without it GitHub uses its default version, 2022-11-28, supported until 2028-03-10 (its answers carry `Deprecation` and `Sunset` headers since version 2026-03-10 came out), and after that a newer supported one, where this call answers 200 with the run's details instead of 204. A pinned version would get 410 Gone once its support ends. (GitHub's sample cURL command pins 2026-03-10: delete that header if you use "Import from cURL".)
+
+GitHub answers a correct call with HTTP 204 (no content; 200 with the run's details is fine too, and cron-job.org counts any 2xx as success). "Test run" (at the bottom of the editor) sends a real request with the current settings, saved or not, and is not recorded in the history. It starts a real production run within seconds: if the day's post is not out yet, it posts it (later runs that day then stop); if it is out, the run stops at once. On the day of the switch to v1.6.0, do not press it (see below).
+
+A failing job sends one email per run of failures (with the Notifications switch on), and after more than 25 failures in a row it is disabled ("Inactive") until switched on again by hand. cron-job.org has no rule that disables jobs or accounts for inactivity.
 
 ### 3. healthchecks.io watchdog
 
-Create a free account (sign-in by email link), then a check:
+Create a free account at https://healthchecks.io ("Sign Up" > "Email Me a Link"; the link is valid for 1 hour). Sign-up adds a sample check "My First Check" and an email integration; remove the sample ("Danger Zone" > "Remove") or leave it, it never alerts. Labels below were checked on 2026-11-25.
 
-- Name: `TON Yields daily post`.
-- Schedule: Cron `0 8 * * *`, time zone UTC.
-- Grace time: 45 minutes once step 2 is live (12 hours before that, while posts still start late).
-- Integrations: open https://t.me/HealthchecksBot, send `/start`, follow the link and connect the check's project; keep the email integration as a backup and press "Test" once.
+- "Add Check": Name `TON Yields daily post`; Schedule "Cron"; Cron Expression `0 8 * * *` (in place of `* * * * *`); Time Zone UTC (the default); Grace Time 45 "minutes" once step 2 is live (12 "hours" before that, while posts still start late); "Save". Later changes: the check's page > "Change Schedule…"; its "Expected Ping Dates" should list 08:00 each day.
+- Telegram: in Telegram (Desktop is easiest) open https://t.me/HealthchecksBot and send `/start`. Within 10 minutes open the link it replies with, in a browser logged in to healthchecks.io, choose the project and click "Connect Telegram". The integration is switched on for every check. On "Integrations", press "Test!" in the Telegram row: a message about a dummy check "TEST" being down should arrive. Keep the email integration as a backup.
+- Optional: on the check's page, "Filtering Rules…" > "Only POST" > "Save". The bot always POSTs, so link previews of the URL can no longer mark the check up.
+- Log in at least once a year: an account without log-ins for over a year is deleted after a 30-day notice, and pings do not count.
 
-Copy the check's ping URL and store it as a repository secret (paste it at the prompt):
+Copy the ping URL (the check's page, under "How To Ping") and store it as a repository secret, the base URL only (the bot adds `/start` and `/fail`); paste it at the prompt:
 
 ```bash
 gh secret set HC_PING_URL --repo rrrusxx/ton-yields-bot
 ```
 
-A check that has never received a ping never alerts; the first post after the secret is set activates it.
+How it behaves: a check that has never received a ping has no deadline and never alerts on schedule; the first success turns it up, without a message. From then on it alerts once per down event: no success by 08:45 UTC, a "fail" signal (at once), or a "start" with no success or fail within the grace time (a run killed half-way, even on a day whose post is out); a recovery sends "is now UP". hc-ping.com answers even a mistyped URL with HTTP 200, so after the first production run check the check's "Events" for "Started" and "OK" rows; "This check has never received a ping." means no ping arrived (a wrong secret, no run, or only test runs, which send none).
 
 ### 4. Optional: test runs on GitHub
 
@@ -103,8 +116,8 @@ A production run posts to @ton_yields_daily; start one by hand only when a post 
 ## When an alert comes
 
 1. Check the channel: is today's post there?
-2. Actions tab: did a run start at 08:00 and 08:30, and what does its log say? A "fail" alert carries the reason.
-3. cron-job.org: the job's history shows GitHub's answer (204 or 200 is fine; 401 or 403 means the token expired or lost its permission; 404 means the URL or the workflow file name changed; 410 means a retired API version was requested).
+2. Actions tab: did a run start at 08:00 (and 08:30, if that job exists), and what does its log say? A "fail" alert carries the reason.
+3. cron-job.org: the job list shows only "Failed (HTTP error)"; its "History" shows GitHub's answer. 204 or 200 is fine; 401 means the token expired, was deleted or is mistyped; 403 or 404 means it lacks access to the repository or the Actions permission, or the URL or the workflow file name changed; 422 means the workflow lost its `workflow_dispatch` trigger or Actions is disabled; 410 means a retired API version was requested.
 4. If nothing posted, start a production run by hand (it posts only if the day's post is missing).
 
 ## Considered and not used (November 2026)
