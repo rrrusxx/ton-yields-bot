@@ -5,7 +5,7 @@
 Telegram bot that aggregates yield opportunities from TON DeFi (the TON coin is called GRAM since June 2026), posting daily summaries to a Telegram channel.
 
 **Current Version:** v1.6.1  
-**Status:** ✅ In production (GitHub Actions; from v1.6.0 started at 08:00 UTC by cron-job.org once the owner finishes the setup in HOSTING.md, until then by GitHub's late fallback schedule)
+**Status:** ✅ In production (GitHub Actions, started at 08:00 UTC by a cron-job.org job set up on 2026-11-25, with GitHub's late fallback schedule as the backup; see HOSTING.md)
 
 ---
 
@@ -17,7 +17,7 @@ Telegram bot that aggregates yield opportunities from TON DeFi (the TON coin is 
 
 **Next, in order:**
 1. **On-chain engine, the rest.** EVAA and tsUSDe from their contracts (the Storm vaults are done); DEX pools from Ston.fi and DefiLlama instead of Swap.coffee.
-2. **Hosting.** Done in code (v1.6.0): cron-job.org starts the GitHub workflow at 08:00 UTC, a once-a-day guard, a healthchecks.io watchdog; it goes live when the owner finishes the setup in HOSTING.md. Supabase and Deno Deploy were considered and not used (see HOSTING.md).
+2. **Hosting.** Done (v1.6.0 in code, live since 2026-11-25): a cron-job.org job starts the GitHub workflow at 08:00 UTC, with a once-a-day guard. The 08:30 retry job and the healthchecks.io watchdog are ready in code and HOSTING.md but postponed by the owner. Supabase and Deno Deploy were considered and not used (see HOSTING.md).
 3. **Reliability.** Retries, one DefiLlama download per run, source fallbacks, a source health summary, stable history keys.
 4. **New post format.** Top yields per asset, a "since yesterday" block, a Telegram Rich Messages pilot in the test channel.
 5. **Platform.** Interactive bot and a Mini App dashboard.

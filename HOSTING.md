@@ -2,13 +2,23 @@
 
 The bot runs on GitHub Actions. GitHub's own schedule starts runs hours late (the median delay after 08:00 UTC was 7 h 51 min in November 2026, and on 2026-05-23 and 05-26 no run started at all), so since v1.6.0 an outside scheduler starts the post at 08:00 UTC, and a watchdog alerts in Telegram when a post does not go out.
 
+## Current setup (2026-11-25)
+
+| Part | State |
+|---|---|
+| cron-job.org job at 08:00 UTC | Live since 2026-11-25; the first scheduled run is 2026-11-26. Its test run that day got 204 from GitHub and started a run that stopped on the day's marker. |
+| GitHub token in that job | Fine-grained, Actions read and write on this repository only. Expires 2027-11-24 17:00 UTC (GitHub sends the date in the `github-authentication-token-expiration` response header). Before then, make a new one (step 1) and paste it into the job's `Authorization` header. |
+| cron-job.org job at 08:30 UTC (retry) | Not set up (owner's choice of 2026-11-25). A missed 08:00 call is then caught by the fallback, usually hours later the same day. |
+| healthchecks.io watchdog (`HC_PING_URL`) | Not set up (owner's choice of 2026-11-25); without the secret the bot sends no signals and no alert comes. |
+| GitHub's fallback schedule | Active (`daily-post-fallback.yml`). |
+
 ## How a day goes
 
 | Time (UTC) | What happens |
 |---|---|
 | 08:00 | cron-job.org calls GitHub's `workflow_dispatch` API for `daily-post.yml`. The run starts within seconds and usually posts within a minute or two (DefiLlama is given up to 90 s per request, since its cache can be slow). After Telegram accepts the message, the bot records the day in its KV store and sends "success" to the watchdog. |
-| 08:30 | cron-job.org calls again, as a retry. If the post already went out, the run finds the day's marker and stops ("success" again, nothing posted). If it did not, this run posts. |
-| 08:45 | If the watchdog has had no success since 08:00 (or got a "fail" signal at any time), healthchecks.io sends an alert to Telegram. |
+| 08:30 | If the retry job is set up, cron-job.org calls again. If the post already went out, the run finds the day's marker and stops ("success" again, nothing posted). If it did not, this run posts. |
+| 08:45 | If the watchdog is set up and has had no success since 08:00 (or got a "fail" signal at any time), healthchecks.io sends an alert to Telegram. |
 | hours later | `daily-post-fallback.yml`, on GitHub's own late schedule, starts `daily-post.yml` once more. It stops at once if the day's post is out; if both outside calls failed, it posts, late but the same day. |
 
 - **Once a day.** The marker is kept per channel and per UTC date (`src/services/post_guard.ts`), so retries and late runs normally stop, and test posts never block the real one. A manual run with `force` ignores it. A second post can still happen in rare cases: GitHub's cache fails to save or restore the KV store, the marker cannot be read (the bot then posts rather than miss a day), or the day of the switch to v1.6.0 (see below).
@@ -41,7 +51,7 @@ Create a free account (turn on two-factor authentication), then two cron jobs wi
 | URL | `https://api.github.com/repos/rrrusxx/ton-yields-bot/actions/workflows/daily-post.yml/dispatches` |
 | Schedule | every day at 08:00 (and 08:30); set the job's time zone to UTC (in cron-job.org it is on the job's Advanced tab, and a new job starts in the account's time zone) |
 | Request method | POST |
-| Headers | `Accept: application/vnd.github+json`, `Authorization: Bearer <the token from step 1>`, `Content-Type: application/json` (no API version header: a pinned version is retired after a few years and then answers 410) |
+| Headers | `Accept: application/vnd.github+json`, `Authorization: Bearer <the token from step 1>`, `Content-Type: application/json`. No `X-GitHub-Api-Version` header: without it GitHub uses its default version, 2022-11-28, supported until 2028-03-10 (its answers carry `Deprecation` and `Sunset` headers since version 2026-03-10 came out), and after that a newer supported one, where this call answers 200 with the run's details instead of 204. A pinned version would get 410 Gone once its support ends. |
 | Request body | `{"ref":"main"}` |
 | Notifications | on failure, and when the job is disabled |
 

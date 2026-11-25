@@ -6,7 +6,8 @@
 
 - [ ] **Align the on-chain windows to the validation round** (start of the round from config param 34 or Hipo's settled round, plus a fixed offset away from payout times), so a KTON or Bemo payout near "now" can never be miscounted.
 - [ ] **On-chain engine, part 2:** EVAA (`getAssetRates`) and Ethena tsUSDe on TON (`getTotalAssets`/`getTotalShares`).
-- [ ] **Owner setup for the on-time start (v1.6.0, HOSTING.md):** a fine-grained GitHub token, the two cron-job.org jobs (08:00 and 08:30 UTC), the healthchecks.io check with Telegram and the `HC_PING_URL` secret; then shorten the check's grace time to 45 minutes. Optional: `TEST_TELEGRAM_*` secrets for test runs on GitHub.
+- [ ] **Renew the dispatch token before 2027-11-24:** a new fine-grained GitHub token (HOSTING.md, step 1) in the cron-job.org job's `Authorization` header; when it expires, the 08:00 start stops.
+- [ ] **Postponed by the owner (Nov 25, 2026), see HOSTING.md:** the 08:30 cron-job.org retry job and the healthchecks.io watchdog (`HC_PING_URL`). Optional: `TEST_TELEGRAM_*` secrets for test runs on GitHub.
 - [ ] **Reliability:** retries, one DefiLlama download per run, fallback rows when Swap.coffee fails, a source health summary.
 - [ ] Final check against Telegram's 4,096-character limit before sending, with a shorter fallback post.
 - [ ] Delete the old Deno Deploy project (hosting moved to GitHub Actions).
@@ -15,6 +16,7 @@
 
 ## ✅ Recently Completed
 
+- [x] **On-time start live** (Nov 25, 2026): a cron-job.org job starts the post at 08:00 UTC with a fine-grained GitHub token (expires Nov 24, 2027); its test run got 204 and the run stopped on the day's marker
 - [x] **DefiLlama requests wait up to 90 s** (v1.6.1, Nov 25, 2026): its cold cache took 56 s on Nov 24 against the old 20 s limit and failed a test post
 - [x] **GTC removed from the footer's sources line** (v1.6.1, Nov 24, 2026; owner's choice, GTC rows stay in the post)
 - [x] **Own on-chain engine for the six LSTs** (v1.5.0, Nov 20, 2026): APY over the last cycle and "7d" over the last 5 cycles, both from the contracts, net of protocol fees; "⛓️ on-chain" in the footer; Swap.coffee and Palette as the fallback and cross-check; free toncenter key as the `TONCENTER_API_KEY` secret (a wrong key is dropped and the run goes on without it)
@@ -106,7 +108,7 @@
 
 ## 📝 Quick Notes
 
-**Production:** GitHub Actions (`.github/workflows/daily-post.yml`), started at 08:00 and 08:30 UTC by cron-job.org through `workflow_dispatch` once the HOSTING.md setup is done; `daily-post-fallback.yml` keeps GitHub's late schedule. One post per UTC day.
+**Production:** GitHub Actions (`.github/workflows/daily-post.yml`), started at 08:00 UTC by a cron-job.org job through `workflow_dispatch` (live since Nov 25, 2026; no 08:30 retry job or watchdog yet, see HOSTING.md); `daily-post-fallback.yml` keeps GitHub's late schedule. One post per UTC day.
 - Channel: @ton_yields_daily
 - A push to `main` is used by the next post (a run on a day whose post is already out does nothing)
 - History (7d averages, 24h TVL change) lives in Deno KV `./data/kv.db`, carried between runs by `actions/cache`

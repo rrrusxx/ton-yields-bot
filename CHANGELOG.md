@@ -5,6 +5,11 @@ All notable changes to TON Yields Bot will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Production is started at 08:00 UTC by a cron-job.org job, set up on 2026-11-25 (its test run got 204 from GitHub and the run stopped on the day's marker). The 08:30 retry job and the healthchecks.io watchdog are not set up for now (owner's choice). HOSTING.md gains a "Current setup" table and a corrected note on GitHub's API versions.
+
 ## [1.6.1] - 2026-11-25
 
 ### Changed
