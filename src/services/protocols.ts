@@ -12,6 +12,8 @@ export const PROTOCOL_URLS: Record<string, string> = {
   "hipo": "https://hipo.finance/",
   "kton": "https://kton.io/",
   "stakee": "https://t.me/StakeeBot/app",
+  // Native staking pools and wsTON (the staking page links to both)
+  "ton-whales": "https://tonwhales.com/staking",
   "torch_finance": "https://torchfinance.org/",
   
   // Lending Protocols (TMAs)
@@ -240,6 +242,9 @@ const NATIVE_TON_ASSETS = new Set([
   // KTON's and Stakee's tokens (their tickers did not change with the rename)
   "KTON",
   "STAKED",
+  // WSTON (TON Whales liquid staking) is left out on purpose: its row is built
+  // by the on-chain engine, and listing it would only add DeDust's GRAM-wsTON
+  // pool, which paid about 0% in November 2026.
 ]);
 
 /**
@@ -257,7 +262,11 @@ function isNativeTonAsset(asset: string): boolean {
  */
 const HACKED_PROTOCOLS: ReadonlySet<string> = new Set([
   // Unbacked mint of about $1.05M between 2026-09-30 and 2026-10-16
-  // (DefiLlama hacks database); protocol TVL fell 91% on 2026-11-14.
+  // (DefiLlama hacks database); protocol TVL fell 91% on 2026-11-14. Since
+  // 2026-11-27 its rows are not shown at all (owner's choice: the protocol is
+  // dead and its APY frozen; DISABLED_PROTOCOLS in defillama.ts and the
+  // Swap.coffee filter). The entry stays so the flag applies if a source
+  // brings a row back.
   "Affluent",
 ]);
 
@@ -266,6 +275,34 @@ const HACKED_PROTOCOLS: ReadonlySet<string> = new Set([
  */
 export function isHackedProtocol(source: string): boolean {
   return HACKED_PROTOCOLS.has(source);
+}
+
+/**
+ * How tickers are written in the post. Some sources send them in capitals
+ * (DefiLlama's "TSUSDE", "GRAM-TSTON"); the post uses each token's own
+ * spelling. Display only: history keys keep the source's spelling.
+ */
+const TICKER_SPELLINGS: Readonly<Record<string, string>> = {
+  TSUSDE: "tsUSDe",
+  SUSDE: "sUSDe",
+  USDE: "USDe",
+  TSTON: "tsTON",
+  TSGRAM: "tsGRAM",
+  STTON: "stTON",
+  STGRAM: "stGRAM",
+  HTON: "hTON",
+  HGRAM: "hGRAM",
+  BMTON: "bmTON",
+  BMGRAM: "bmGRAM",
+  WSTON: "wsTON",
+};
+
+/** A symbol or pair ("GRAM-TSTON") with each token in its usual spelling */
+export function displayTicker(symbol: string): string {
+  return symbol
+    .split("-")
+    .map((part) => TICKER_SPELLINGS[part.toUpperCase()] ?? part)
+    .join("-");
 }
 
 /**

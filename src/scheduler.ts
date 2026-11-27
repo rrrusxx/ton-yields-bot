@@ -44,7 +44,7 @@ export async function postDailyYields(
   const deps: PostDeps = {
     fetchYields: fetchTonYields,
     format: formatChannelMessage,
-    send: (message) => sendToChannel(bot, message),
+    send: (message) => sendToChannel(bot, message, { buttons: true }),
     wasPostedOn,
     markPosted,
     ping: pingHealthcheck,

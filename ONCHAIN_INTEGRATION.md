@@ -44,14 +44,17 @@ Normal gaps on 2026-11-20 were 0.1-1.6%. This catches a miscount at the start of
 
 | Row in the post | Contract | Get-method | Rate |
 |---|---|---|---|
-| Tonstakers GRAM-tsTON (tsTON) | `EQCkWxfyhAkim3g2DjKQQg8T5P4g-Q1-K_jErGcDJZ4i-vqR` | `get_pool_full_data` (30 values) | [2] / [13] |
+| Tonstakers GRAM (tsTON) | `EQCkWxfyhAkim3g2DjKQQg8T5P4g-Q1-K_jErGcDJZ4i-vqR` | `get_pool_full_data` (30 values) | [2] / [13] |
 | Stakee GRAM (STAKED) | `EQD2_4d91M4TVbEBVyBF8J1UwpMJc361LKVCz6bBlffMW05o` | `get_pool_full_data` (30 values) | [2] / [13] |
-| Hipo GRAM-hGRAM (hGRAM) | `EQCLyZHP4Xe8fpchQz76O-_RmUhaVc_9BAoGyJrwJrcbz2eZ` | `get_treasury_state` | [0] / [1] |
+| Hipo GRAM (hGRAM) | `EQCLyZHP4Xe8fpchQz76O-_RmUhaVc_9BAoGyJrwJrcbz2eZ` | `get_treasury_state` | [0] / [1] |
 | KTON GRAM (KTON) | `EQA9HwEZD_tONfVz6lJS0PVKR5viEiEGyj9AuQewGQVnXPg0` | `get_pool_full_data` (34 values) | [2] / [17] |
-| Bemo GRAM-stTON (stTON, v1) | `EQDNhy-nxYFgUqzfUzImBEP67JqsyMIcyk2S5_RwNNEYku0k` | `get_full_data` | [1] / [0] |
-| Bemo GRAM-bmTON (bmTON, v2) | `EQCSxGZPHqa3TtnODgMan8CEM0jf6HpY-uon_NMeFgjKqkEY` | `get_full_data` | [1] / [0] |
+| Bemo GRAM (stTON, v1) | `EQDNhy-nxYFgUqzfUzImBEP67JqsyMIcyk2S5_RwNNEYku0k` | `get_full_data` | [1] / [0] |
+| Bemo GRAM (bmTON, v2) | `EQCSxGZPHqa3TtnODgMan8CEM0jf6HpY-uon_NMeFgjKqkEY` | `get_full_data` | [1] / [0] |
+| TON Whales GRAM (wsTON), since v1.7.0 | `EQB0SoxuGDx5qjVt0P_bPICFeWdFLBmVopHhjgfs0q-wsTON` | `get_pool_status` (15 values) | [1] / 1e9, the published rate; [11] GRAM balance / [10] wsTON supply must agree within 1e-4 |
 
-The rows keep the same protocol name, asset and label as the Swap.coffee rows they replace.
+Every row reads "GRAM (<token>)": what you deposit, then the token you get. Until v1.7.0 three rows used Swap.coffee's "GRAM-tsTON (tsTON)" style, which looked the same as a DEX pool of the pair. The rows keep the protocol name and label (the token) of the Swap.coffee rows they replace, and match them by contract address or label. wsTON's rate steps once per 131,072 s cycle like Tonstakers' (checked on archival states from 2026-11-18 to 11-26: about +0.052% per cycle, 13.5% a year over 30 days); deposits between payouts move the balance/supply ratio by about 1e-5, so the APY follows the published rate.
+
+TON Whales' native nominator pools are not read on-chain: their row (src/services/whales.ts) takes the pools' own APY estimate from tonapi and is marked "est.".
 
 ## TVL
 

@@ -309,6 +309,9 @@ const SWAP_COFFEE_PROTOCOLS = [
 const DISABLED_PROTOCOLS = [
   "fiva",
   "daolama", // Project closed — temporarily hidden
+  // Hacked on 2026-10-16 (unbacked mint of about $1.05M); the protocol is dead
+  // and its APY frozen, so its rows are left out since 2026-11-27 (owner's choice)
+  "affluent",
 ];
 
 /**
@@ -412,9 +415,10 @@ export async function fetchTonYields(): Promise<GroupedYields> {
   const { fetchDedustYields } = await import("./dedust.ts");
   const { fetchOnchainYields, preferOnchain } = await import("./onchain.ts");
   const { fetchPaletteData, applyPaletteOverrides } = await import("./palette.ts");
+  const { fetchWhalesNativeStaking } = await import("./whales.ts");
 
   // Fetch from all sources in parallel
-  const [defiLlamaYields, ethenaYields, swapCoffeeYields, gtcYields, dedustYields, onchainYields, paletteData] = await Promise.all([
+  const [defiLlamaYields, ethenaYields, swapCoffeeYields, gtcYields, dedustYields, onchainYields, paletteData, whalesYields] = await Promise.all([
     fetchDefiLlamaYields(),
     fetchEthenaYields(),
     fetchSwapCoffeeYields(),
@@ -422,7 +426,13 @@ export async function fetchTonYields(): Promise<GroupedYields> {
     fetchDedustYields(),
     fetchOnchainYields(),
     fetchPaletteData(),
+    fetchWhalesNativeStaking(),
   ]);
+
+  // TON Whales native staking (tonapi; the pools' own APY estimate)
+  for (const yield_ of whalesYields) {
+    defiLlamaYields[yield_.assetType].push(yield_);
+  }
 
   // Merge Ethena yields into the grouped structure
   for (const yield_ of ethenaYields) {

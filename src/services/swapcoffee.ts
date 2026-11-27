@@ -173,23 +173,39 @@ function getAssetSymbol(pool: SwapCoffeePool): string {
   return joined;
 }
 
-/** Version labels for DEX protocols that run several versions side by side */
+/**
+ * Labels of DEX pools: the protocol version where a DEX runs several side by
+ * side, and "CL" for concentrated liquidity (Tonco), where fees go only to
+ * positions whose price range covers the market price, so the pool's APY is
+ * not what a given LP earns (the legend says so).
+ */
 const DEX_VERSION_LABELS: Record<string, string> = {
   stonfi: "v1",
   stonfi_v2: "v2",
+  tonco: "CL v1",
+  tonco_v2: "CL",
 };
+
+/**
+ * DEX protocols. Their rows are LP pools, and the pair already names both
+ * tokens, so they never take a token as their label: until 2026-11-27 the
+ * Ston.fi GRAM/tsTON pool read "GRAM-tsTON (tsTON)", exactly like Tonstakers'
+ * staking row.
+ */
+const DEX_PROTOCOLS = new Set(["stonfi", "stonfi_v2", "coffee", "tonco", "tonco_v2", "bidask", "moon", "dedust"]);
 
 /**
  * Get pool metadata for display
  */
 function getPoolMeta(pool: SwapCoffeePool): string | null {
-  // Ston.fi GRAM-USDT pools are labelled by protocol version: the pair exists
-  // on v1 and v2, and both pools used to be labelled "(USDT)" and share one
-  // 7-day history. Other Ston.fi pools keep their label (and their history).
-  const versionLabel = DEX_VERSION_LABELS[pool.protocol.toLowerCase()];
-  if (versionLabel && isTonUsdtPool(pool.tokens.map((t) => t.metadata.symbol).join("-"))) {
-    return versionLabel;
-  }
+  // DEX pools are labelled by version or kind: Ston.fi's pairs exist on v1
+  // and v2 (the GRAM-USDT pools used to share one label and one 7-day
+  // history), and Tonco's are concentrated-liquidity pools. Other DEX pools
+  // take no label.
+  const protocol = pool.protocol.toLowerCase();
+  const versionLabel = DEX_VERSION_LABELS[protocol];
+  if (versionLabel) return versionLabel;
+  if (DEX_PROTOCOLS.has(protocol)) return null;
 
   // For liquid staking, show the derivative token
   if (pool.tokens.length === 2) {
@@ -340,6 +356,7 @@ export async function fetchSwapCoffeeYields(): Promise<YieldOpportunity[]> {
   // Filter out EVAA pools - we use DefiLlama for complete EVAA coverage (includes USDE)
   // Filter out Moon - no longer live on TON
   // Filter out DeDust - its APR is always 0 here; dedust.ts reads DeDust's own API
+  // Filter out Affluent - hacked on 2026-10-16 and dead since (owner's choice of 2026-11-27)
   const pools = allPools.filter(pool => {
     const protocol = pool.protocol.toLowerCase();
     // Fiva and Daolama temporarily disabled
@@ -348,9 +365,10 @@ export async function fetchSwapCoffeeYields(): Promise<YieldOpportunity[]> {
       !protocol.startsWith("dedust") &&
       !protocol.includes("fiva") &&
       !protocol.includes("daolama") &&
-      !protocol.includes("dao_lama");
+      !protocol.includes("dao_lama") &&
+      !protocol.includes("affluent");
   });
-  console.log(`${pools.length} pools after excluding EVAA, Moon, DeDust, Fiva and Daolama`);
+  console.log(`${pools.length} pools after excluding EVAA, Moon, DeDust, Fiva, Daolama and Affluent`);
 
   // Transform to yield opportunities
   const yields = pools

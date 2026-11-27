@@ -1,6 +1,6 @@
 import type { GroupedYields, OrganizedYields, ProtocolGroup, YieldOpportunity } from "../types/yields.ts";
 import { getTopYields } from "../services/defillama.ts";
-import { isHackedProtocol } from "../services/protocols.ts";
+import { displayTicker, isHackedProtocol } from "../services/protocols.ts";
 import { fetchTonTVL, formatTVL } from "../services/tvl.ts";
 import { saveTvlSnapshot, calculateTvlChange, formatTvlChange } from "../services/tvl_history.ts";
 import { saveAllApySnapshots, calculateAll7DayAverages } from "../services/apy_history.ts";
@@ -136,13 +136,41 @@ function formatApy(apy: number, avg7d?: number | null): string {
 }
 
 /**
- * Format asset name with optional label
+ * Format asset name with optional label, tickers in their usual spelling
+ * ("TSUSDE" from DefiLlama reads "tsUSDe")
  */
 function formatAssetWithLabel(asset: string, label: string | null): string {
   if (label && label.length > 0) {
-    return `${safeText(asset)} (${safeText(label)})`;
+    return `${safeText(displayTicker(asset))} (${safeText(displayTicker(label))})`;
   }
-  return safeText(asset);
+  return safeText(displayTicker(asset));
+}
+
+/**
+ * The APY part of a row: an estimate is marked "est." and has no 7-day
+ * value; a custom note replaces the 7-day value; base plus reward when the
+ * reward matters; otherwise the APY with its 7-day value and direction.
+ */
+function formatRowApy(yield_: YieldOpportunity, avg7d?: number | null): string {
+  if (yield_.apyEstimate) {
+    return `${yield_.apyTotal.toFixed(1)}% est.`;
+  }
+  if (yield_.apyNote) {
+    // Hardcoded/custom APY with a descriptive note instead of 7d average
+    return `${yield_.apyTotal.toFixed(2)}% (${safeText(yield_.apyNote)})`;
+  }
+  if (yield_.apyReward && yield_.apyReward > 0.1) {
+    // For pools with rewards, show base + reward, then direction + 7d average of total
+    const baseReward = `${formatApy(yield_.apyBase)} (+${formatApy(yield_.apyReward)})`;
+    if (avg7d !== null && avg7d !== undefined) {
+      const direction = getApyDirection(yield_.apyTotal, avg7d);
+      const average = avg7d.toFixed(1);
+      return `${baseReward}${direction} 7d: ${average}%`;
+    }
+    return baseReward;
+  }
+  // Regular APY with 7-day average and direction indicator
+  return formatApy(yield_.apyTotal, avg7d);
 }
 
 /**
@@ -155,32 +183,12 @@ function formatYieldLine(
   avg7d?: number | null
 ): string {
   const prefix = isLast ? "└" : "├";
-  
+
   // Format asset with label
   const assetText = formatAssetWithLabel(yield_.asset, label ?? yield_.poolMeta);
-  
-  // Format APY with optional reward and 7-day average
-  let apyText: string;
-  if (yield_.apyNote) {
-    // Hardcoded/custom APY with a descriptive note instead of 7d average
-    apyText = `${yield_.apyTotal.toFixed(2)}% (${safeText(yield_.apyNote)})`;
-  } else if (yield_.apyReward && yield_.apyReward > 0.1) {
-    // For pools with rewards, show base + reward, then direction + 7d average of total
-    const baseReward = `${formatApy(yield_.apyBase)} (+${formatApy(yield_.apyReward)})`;
-    if (avg7d !== null && avg7d !== undefined) {
-      const direction = getApyDirection(yield_.apyTotal, avg7d);
-      const average = avg7d.toFixed(1);
-      apyText = `${baseReward}${direction} 7d: ${average}%`;
-    } else {
-      apyText = baseReward;
-    }
-  } else {
-    // Regular APY with 7-day average and direction indicator
-    apyText = formatApy(yield_.apyTotal, avg7d);
-  }
-  
+
   // TVL (with low-liquidity warning), omitted when unknown or untrustworthy
-  return `${prefix} ${assetText}: ${apyText}${formatUtilization(yield_.utilizationPct)}${formatTvlPart(yield_)}`;
+  return `${prefix} ${assetText}: ${formatRowApy(yield_, avg7d)}${formatUtilization(yield_.utilizationPct)}${formatTvlPart(yield_)}`;
 }
 
 /**
@@ -319,21 +327,7 @@ export function formatTopYieldsSection(yields: YieldOpportunity[], averages: Map
 
     // Format APY with 7-day average and direction (a measured 7d value wins)
     const avg7d = y.onChain ? (y.apy7d ?? null) : (y.apy7d ?? (averages.get(y) || null));
-    let apyText: string;
-    if (y.apyNote) {
-      apyText = `${y.apyTotal.toFixed(2)}% (${safeText(y.apyNote)})`;
-    } else if (y.apyReward && y.apyReward > 0.1) {
-      const baseReward = `${formatApy(y.apyBase)} (+${formatApy(y.apyReward)})`;
-      if (avg7d !== null && avg7d !== undefined) {
-        const direction = getApyDirection(y.apyTotal, avg7d);
-        const average = avg7d.toFixed(1);
-        apyText = `${baseReward}${direction} 7d: ${average}%`;
-      } else {
-        apyText = baseReward;
-      }
-    } else {
-      apyText = formatApy(y.apyTotal, avg7d);
-    }
+    const apyText = formatRowApy(y, avg7d);
 
     const protocolLink = formatProtocolLink(y.source, y.sourceUrl);
     contentLines.push(`${rankEmoji} ${protocolLink} ${assetText}: ${apyText}${formatUtilization(y.utilizationPct)}${formatTvlPart(y)}`);
@@ -361,11 +355,20 @@ function getCurrentDateUTC(): string {
 /**
  * Get current UTC time formatted
  */
-function getCurrentTimeUTC(): string {
-  const now = new Date();
+function getCurrentTimeUTC(now: Date = new Date()): string {
   const hours = now.getUTCHours().toString().padStart(2, "0");
   const minutes = now.getUTCMinutes().toString().padStart(2, "0");
   return `${hours}:${minutes} UTC`;
+}
+
+/**
+ * The post's time as a date-time entity (Bot API 9.5): Telegram shows it in
+ * each reader's own time zone, and "08:01 UTC" where it cannot (older apps,
+ * the web preview).
+ */
+export function formatPostTime(now: Date): string {
+  const unix = Math.floor(now.getTime() / 1000);
+  return `<tg-time unix="${unix}" format="t">${getCurrentTimeUTC(now)}</tg-time>`;
 }
 
 /**
@@ -510,26 +513,66 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   // Footer
   sections.push(SEPARATOR);
   sections.push("");
-  sections.push("<i>APY (7d avg) ↑↓ | UR = Utilisation Rate (🔥 if &gt;95%) | TVL · ⚠️ low TVL (&lt;$10K) · 🚨 hacked protocol</i>");
-  sections.push(formatSourcesLine(allPools, getCurrentTimeUTC()));
-  
+  // The legend explains only rows the post shows (not EVAA rows past the cap)
+  const shownEvaaStable = new Set(stableGroups.find((g) => g.protocol === "EVAA")?.yields.slice(0, 3) ?? []);
+  const shownRows = allPools.filter((y) => !(y.assetType === "STABLE" && !y.isTonUsdtPool && y.source === "EVAA") || shownEvaaStable.has(y));
+  sections.push(...formatLegend(shownRows));
+  sections.push(formatSourcesLine(allPools, new Date()));
+
   return sections.join("\n");
+}
+
+/** A Tonco-style concentrated-liquidity label: "CL" or "CL v1" (not DeDust's "Classic 0.10%") */
+function isConcentratedLabel(label: string | null): boolean {
+  return label !== null && /^CL( |$)/.test(label);
+}
+
+/**
+ * The legend, one or two lines. The first explains the columns (the UR part
+ * only when a row shows a utilisation rate, the hacked flag only when a row
+ * carries it). The second, only when needed: "est." rows and concentrated-
+ * liquidity pools. The post says nothing about referral links (owner's
+ * choice of 2026-11-27).
+ */
+export function formatLegend(rows: YieldOpportunity[]): string[] {
+  const columns = ["APY (7d avg) ↑↓"];
+  if (rows.some((y) => y.utilizationPct !== undefined)) columns.push("UR = Utilisation Rate (🔥 if &gt;95%)");
+  let tvl = "TVL · ⚠️ low TVL (&lt;$10K)";
+  if (rows.some((y) => isHackedProtocol(y.source))) tvl += " · 🚨 hacked protocol";
+  columns.push(tvl);
+
+  const notes: string[] = [];
+  if (rows.some((y) => y.apyEstimate)) notes.push("est. = the pool's own estimate");
+  if (rows.some((y) => isConcentratedLabel(y.poolMeta))) {
+    notes.push("CL = concentrated liquidity: an LP earns only while the price is in its range");
+  }
+
+  const lines = [`<i>${columns.join(" | ")}</i>`];
+  if (notes.length > 0) lines.push(`<i>${notes.join(" · ")}</i>`);
+  return lines;
+}
+
+/**
+ * The footer's sources line. It credits DefiLlama, Swap.coffee and Palette;
+ * DeDust and GTC are not credited there (owner's choices of 2026-11-20 and
+ * 2026-11-24), although their rows stay in the post. "⛓️ on-chain" comes
+ * first, only when the post really has rows read from contracts. Providers
+ * that only some rows use (tonapi for TON Whales native staking) are added
+ * when such a row is in the post. The time shows in each reader's time zone.
+ */
+export function formatSourcesLine(rows: YieldOpportunity[], now: Date): string {
+  const onChain = rows.some((y) => y.onChain) ? "⛓️ on-chain · " : "";
+  const credits = new Map<string, string>();
+  for (const y of rows) {
+    if (y.footerCredit && !credits.has(y.footerCredit.name)) credits.set(y.footerCredit.name, y.footerCredit.url);
+  }
+  const extra = [...credits].map(([name, url]) => ` · <a href="${escapeHtml(url)}">${safeText(name)}</a>`).join("");
+  return `<i>📊 ${onChain}<a href="https://defillama.com/">DefiLlama</a> · <a href="https://swap.coffee/">Swap.coffee</a> · <a href="https://palette.finance/">Palette</a>${extra} · ${formatPostTime(now)}</i>`;
 }
 
 /**
  * Format a simple test message
  */
-/**
- * The footer's sources line. It credits DefiLlama, Swap.coffee and Palette;
- * DeDust and GTC are not credited there (owner's choices of 2026-11-20 and
- * 2026-11-24), although their rows stay in the post. "⛓️ on-chain" comes
- * first, only when the post really has rows read from contracts.
- */
-export function formatSourcesLine(rows: YieldOpportunity[], time: string): string {
-  const onChain = rows.some((y) => y.onChain) ? "⛓️ on-chain · " : "";
-  return `<i>📊 ${onChain}<a href="https://defillama.com/">DefiLlama</a> · <a href="https://swap.coffee/">Swap.coffee</a> · <a href="https://palette.finance/">Palette</a> · ${time}</i>`;
-}
-
 export function formatTestMessage(): string {
   return `<b>TON Yields Bot</b>\n\nBot is running!\n\n<i>Test message sent at ${getCurrentTimeUTC()}</i>`;
 }

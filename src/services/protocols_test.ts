@@ -1,5 +1,11 @@
-import { assert, assertFalse } from "std/assert/mod.ts";
-import { isCorrelatedPair, isHackedProtocol, isSingleAssetInCategory, pairBelongsToCategory } from "./protocols.ts";
+import { assert, assertEquals, assertFalse } from "std/assert/mod.ts";
+import {
+  displayTicker,
+  isCorrelatedPair,
+  isHackedProtocol,
+  isSingleAssetInCategory,
+  pairBelongsToCategory,
+} from "./protocols.ts";
 
 const acceptedAsGramPair = (symbol: string) =>
   pairBelongsToCategory(symbol, "TON") && isCorrelatedPair(symbol, "TON");
@@ -46,4 +52,14 @@ Deno.test("hacked protocol list", () => {
   assert(isHackedProtocol("Affluent"));
   assertFalse(isHackedProtocol("EVAA"));
   assertFalse(isHackedProtocol("affluent")); // display names are exact
+});
+
+Deno.test("tickers are shown in their usual spelling, other text is left alone", () => {
+  assertEquals(displayTicker("TSUSDE"), "tsUSDe");
+  assertEquals(displayTicker("tsUSDE"), "tsUSDe");
+  assertEquals(displayTicker("GRAM-TSTON"), "GRAM-tsTON");
+  assertEquals(displayTicker("USDE-USDT"), "USDe-USDT");
+  for (const text of ["GRAM", "STAKED", "KTON", "TON-SLP", "Main", "Classic 0.10%", "native staking", "v2", "USD₮"]) {
+    assertEquals(displayTicker(text), text);
+  }
 });

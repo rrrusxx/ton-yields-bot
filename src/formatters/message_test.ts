@@ -4,6 +4,8 @@ import {
   displayText,
   escapeHtml,
   formatCategorySection,
+  formatLegend,
+  formatPostTime,
   formatSourcesLine,
   formatTopYieldsSection,
   organizeByProtocol,
@@ -75,7 +77,8 @@ Deno.test("hacked protocol is flagged, shown without TVL and listed last", () =>
 
   const section = formatCategorySection("💎 GRAM AND RELATED ASSETS", groups, noAverages);
   assertStringIncludes(section, "Affluent</a> 🚨 Hacked</b>");
-  assertStringIncludes(section, "└ GRAM-TSTON: 11.8%</blockquote>");
+  // DefiLlama's capitals are shown in the token's own spelling
+  assertStringIncludes(section, "└ GRAM-tsTON: 11.8%</blockquote>");
   assertFalse(section.includes("$721.7K"));
   // Low TVL elsewhere is still flagged, not hidden
   assertStringIncludes(section, "└ GRAM: 13.4% | $2.0K ⚠️");
@@ -107,13 +110,72 @@ Deno.test("an on-chain row without a trustworthy 7d value shows none, even with 
   assertStringIncludes(section, "└ GRAM (KTON): 13.4% | $2.0M");
 });
 
+const POST_TIME = new Date("2026-11-27T08:01:30Z");
+
 Deno.test("the sources line credits DefiLlama, Swap.coffee and Palette, not DeDust or GTC", () => {
-  const onChain = formatSourcesLine([row({ source: "Hipo", onChain: true }), row({ source: "GTC" })], "17:48 UTC");
+  const onChain = formatSourcesLine([row({ source: "Hipo", onChain: true }), row({ source: "GTC" })], POST_TIME);
   assertEquals(
     onChain.replace(/<[^>]+>/g, ""),
-    "📊 ⛓️ on-chain · DefiLlama · Swap.coffee · Palette · 17:48 UTC",
+    "📊 ⛓️ on-chain · DefiLlama · Swap.coffee · Palette · 08:01 UTC",
   );
   assertFalse(onChain.includes("GTC") || onChain.includes("giftcredit") || onChain.includes("DeDust"));
   // Without rows read from contracts there is no "on-chain" credit
-  assertFalse(formatSourcesLine([row({ source: "GTC" })], "17:48 UTC").includes("on-chain"));
+  assertFalse(formatSourcesLine([row({ source: "GTC" })], POST_TIME).includes("on-chain"));
+});
+
+Deno.test("the post time is a date-time entity with the UTC time as its text", () => {
+  assertEquals(formatPostTime(POST_TIME), `<tg-time unix="1795766490" format="t">08:01 UTC</tg-time>`);
+  assertStringIncludes(formatSourcesLine([row({})], POST_TIME), `<tg-time unix="1795766490" format="t">08:01 UTC</tg-time></i>`);
+});
+
+Deno.test("a provider used by some rows is credited only when such a row is shown", () => {
+  const whales = row({ source: "TON Whales", footerCredit: { name: "tonapi", url: "https://tonapi.io/" } });
+  const line = formatSourcesLine([whales, { ...whales, poolMeta: "copy" }], POST_TIME);
+  assertEquals(
+    line.replace(/<[^>]+>/g, ""),
+    "📊 DefiLlama · Swap.coffee · Palette · tonapi · 08:01 UTC",
+  );
+  assertStringIncludes(line, `<a href="https://tonapi.io/">tonapi</a>`);
+  assertFalse(formatSourcesLine([row({})], POST_TIME).includes("tonapi"));
+});
+
+Deno.test("an estimated APY is marked est. and shows no 7-day value", () => {
+  const whales = row({
+    source: "TON Whales", poolMeta: "native staking", apyTotal: 12.6154, apyBase: 12.6154, apyEstimate: true, tvlUsd: 15_700_000,
+  });
+  const averages = new Map<YieldOpportunity, number>([[whales, 12.0]]);
+  const section = formatCategorySection("💎 GRAM AND RELATED ASSETS", organizeByProtocol([whales]), averages);
+  assertStringIncludes(section, "└ GRAM (native staking): 12.6% est. | $15.7M");
+  assertStringIncludes(formatTopYieldsSection([whales], averages), "GRAM (native staking): 12.6% est. | $15.7M");
+});
+
+Deno.test("tickers keep their usual spelling", () => {
+  const section = formatCategorySection("💵 STABLECOINS AND RELATED ASSETS", organizeByProtocol([
+    row({ source: "EVAA", asset: "TSUSDE", poolMeta: "Main", apyTotal: 0.16, tvlUsd: 33_400 }),
+    row({ source: "Ethena", asset: "tsUSDE", apyTotal: 4.95, tvlUsd: 1_650_000 }),
+  ]), noAverages);
+  assertStringIncludes(section, "└ tsUSDe (Main): 0.2% | $33.4K");
+  assertStringIncludes(section, "└ tsUSDe: 5.0% | $1.6M");
+});
+
+Deno.test("the legend explains only what the post shows", () => {
+  const plain = formatLegend([row({})]);
+  assertEquals(plain, ["<i>APY (7d avg) ↑↓ | TVL · ⚠️ low TVL (&lt;$10K)</i>"]);
+
+  const full = formatLegend([
+    row({ source: "GTC", utilizationPct: 82 }),
+    row({ source: "Affluent" }),
+    row({ source: "TON Whales", apyEstimate: true }),
+    row({ source: "Tonco", poolMeta: "CL" }),
+    row({ source: "DeDust", poolMeta: "Classic 0.10%" }),
+  ]);
+  assertEquals(full, [
+    "<i>APY (7d avg) ↑↓ | UR = Utilisation Rate (🔥 if &gt;95%) | TVL · ⚠️ low TVL (&lt;$10K) · 🚨 hacked protocol</i>",
+    "<i>est. = the pool's own estimate · CL = concentrated liquidity: an LP earns only while the price is in its range</i>",
+  ]);
+  // The post says nothing about referral links (owner's choice of 2026-11-27)
+  assertFalse(full.join("").includes("referral"));
+  // DeDust's "Classic" label is not a concentrated-liquidity label
+  assertFalse(formatLegend([row({ source: "DeDust", poolMeta: "Classic 0.10%" })]).join("").includes("CL ="));
+  assertStringIncludes(formatLegend([row({ source: "Tonco", poolMeta: "CL v1" })]).join(""), "CL = concentrated liquidity");
 });

@@ -4,7 +4,7 @@
 
 Telegram bot that aggregates yield opportunities from TON DeFi (the TON coin is called GRAM since June 2026), posting daily summaries to a Telegram channel.
 
-**Current Version:** v1.6.1  
+**Current Version:** v1.7.0  
 **Status:** ✅ In production (GitHub Actions, started at 08:00 UTC by a cron-job.org job set up on 2026-11-25, with GitHub's late fallback schedule as the backup; see HOSTING.md)
 
 ---
@@ -19,7 +19,7 @@ Telegram bot that aggregates yield opportunities from TON DeFi (the TON coin is 
 1. **On-chain engine, the rest.** EVAA and tsUSDe from their contracts (the Storm vaults are done); DEX pools from Ston.fi and DefiLlama instead of Swap.coffee.
 2. **Hosting.** Done (v1.6.0 in code, live since 2026-11-25): a cron-job.org job starts the GitHub workflow at 08:00 UTC, with a once-a-day guard. The 08:30 retry job and the healthchecks.io watchdog are ready in code and HOSTING.md but postponed by the owner. Supabase and Deno Deploy were considered and not used (see HOSTING.md).
 3. **Reliability.** Retries, one DefiLlama download per run, source fallbacks, a source health summary, stable history keys.
-4. **New post format.** Top yields per asset, a "since yesterday" block, a Telegram Rich Messages pilot in the test channel.
+4. **Growth plan (agreed 2026-11-27).** Stage 1 done in v1.7.0 (new yields, buttons, local time, cleanup); the owner updates the channel description, pins the methodology note, sets the welcome message and posts a release note. Stage 2: a "since yesterday" block, a weekly image card for protocols and the owner's X, a Rich Messages pilot in the test channel (keep the web-readable copy). Stage 3: a static "GRAM (TON) yields today" page on GitHub Pages, evening alerts on big moves, short explainers. Later, if Telegram Serverless is free: an interactive bot and a Mini App. No paid ads for now.
 5. **Platform.** Interactive bot and a Mini App dashboard.
 
 ---
@@ -213,7 +213,10 @@ For the current order of work see "Status and Plan" at the top. The lists below 
 
 ## 📅 Version History
 
-### v1.6.1 (Current) - November 2026
+### v1.7.0 (Current) - November 2026
+- TON Whales native staking (pool estimate) and wsTON (on-chain); Share and How-we-calculate buttons; time in the reader's time zone; consistent row labels; Affluent removed
+
+### v1.6.1 - November 2026
 - GTC no longer credited in the footer's sources line
 - DefiLlama requests wait up to 90 s (its cold cache took 56 s on 2026-11-24)
 

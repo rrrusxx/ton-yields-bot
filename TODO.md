@@ -4,6 +4,9 @@
 
 ## 🔥 Next
 
+- [ ] **Owner, after v1.7.0:** new channel description, the pinned "How we calculate" note (the button links to the pinned post), the welcome message, a release note (drafts prepared by the agent).
+- [ ] **Growth stage 2:** a "since yesterday" block, a weekly image card (protocol reposts, the owner's X), a Rich Messages pilot in the test channel with a check of the t.me/s web copy.
+
 - [ ] **Align the on-chain windows to the validation round** (start of the round from config param 34 or Hipo's settled round, plus a fixed offset away from payout times), so a KTON or Bemo payout near "now" can never be miscounted.
 - [ ] **On-chain engine, part 2:** EVAA (`getAssetRates`) and Ethena tsUSDe on TON (`getTotalAssets`/`getTotalShares`).
 - [ ] **Renew the dispatch token before 2027-11-24:** a new fine-grained GitHub token (HOSTING.md, step 1) in the cron-job.org job's `Authorization` header; when it expires, the 08:00 start stops.
@@ -15,6 +18,8 @@
 - [ ] Tonco GRAM-USDT APR is an outlier (often above 100%; DefiLlama flags it): decide whether to mark it or use a longer average.
 
 ## ✅ Recently Completed
+
+- [x] **Growth stage 1** (v1.7.0, Nov 27, 2026): TON Whales native staking (estimate) and wsTON (on-chain); Share and How-we-calculate buttons; footer time in the reader's time zone; "GRAM (<token>)" labels for every LST, v1/v2 and CL labels for DEX pools; ticker spelling; legend only for markers shown; Affluent removed
 
 - [x] **On-time start live** (Nov 25, 2026): a cron-job.org job starts the post at 08:00 UTC with a fine-grained GitHub token (expires Nov 24, 2027); its test run got 204 and the run stopped on the day's marker
 - [x] **DefiLlama requests wait up to 90 s** (v1.6.1, Nov 25, 2026): its cold cache took 56 s on Nov 24 against the old 20 s limit and failed a test post

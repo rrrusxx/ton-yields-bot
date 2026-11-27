@@ -49,6 +49,17 @@ export interface YieldOpportunity {
   poolAddress?: string;
   /** Custom APY label shown in place of the 7-day average (e.g. "5y avg") */
   apyNote?: string;
+  /**
+   * True when the APY is the pool's own estimate rather than a measured
+   * rate (TON Whales native staking, from tonapi). The post marks it "est."
+   * and shows no 7-day value.
+   */
+  apyEstimate?: boolean;
+  /**
+   * A data provider to credit in the footer for this row, beyond the fixed
+   * list (DefiLlama, Swap.coffee, Palette); for example tonapi.
+   */
+  footerCredit?: { name: string; url: string };
   /** Pool utilization as a percentage (0-100), e.g. for lending/borrow markets */
   utilizationPct?: number;
 }

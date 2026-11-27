@@ -5,9 +5,20 @@ All notable changes to TON Yields Bot will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.7.0] - 2026-11-27
+
+### Added
+- TON Whales: native staking (one row for the four open nominator pools that Tonkeeper users stake in, about $15.7M; APY is the pools' own estimate from tonapi, marked "est.", tonapi credited in the footer) and the wsTON liquid staking token (measured from its contract like the other LSTs, about $1M).
+- Buttons under the daily post: "Share" (Telegram's share sheet with the post's link) and "How we calculate" (the channel's pinned post; left out while nothing is pinned).
+- The footer time is shown in each reader's own time zone (`<tg-time>`).
 
 ### Changed
+- Every liquid staking row reads "GRAM (<token>)". DEX pools no longer take a token as their label: Ston.fi pools read v1/v2 (its GRAM/tsTON pool used to look exactly like Tonstakers' staking row), Tonco pools "CL" for concentrated liquidity. These rows start a new 7-day history.
+- Tickers keep their usual spelling ("tsUSDe" instead of "TSUSDE").
+- The legend names only markers the post shows.
+- Affluent is no longer shown: hacked on 2026-10-16, dead since, its APY frozen (owner's choice).
+
+### Operations
 - Production is started at 08:00 UTC by a cron-job.org job, set up on 2026-11-25 (its test run got 204 from GitHub and the run stopped on the day's marker). The 08:30 retry job and the healthchecks.io watchdog are not set up for now (owner's choice). HOSTING.md gains a "Current setup" table and a corrected note on GitHub's API versions.
 - HOSTING.md setup steps checked against the live sites on 2026-11-25: GitHub's permission picker (since 2025-08-26) and expiry choices, plus a pre-filled link for renewing the token; cron-job.org's three editor tabs, its off-by-default failure email (on the "Notifications" tab) and its auto-disable after more than 25 failures; healthchecks.io's dialogs, Telegram flow, alert rules and the deletion of accounts without a log-in for a year.
 

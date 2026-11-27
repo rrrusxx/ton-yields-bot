@@ -11,15 +11,16 @@ Link - https://t.me/ton_yields_daily
 - Shows only yields without impermanent loss in the asset sections; GRAM-USDT pools get their own section and never enter the TOP-5
 - APY with a 7-day average and direction arrows, utilisation for lending vaults, TVL with a ⚠️ flag below $10K, a 🚨 mark for hacked protocols
 - TON DeFi TVL with its 24h change in the header
-- Posts once a day to a Telegram channel
+- Posts once a day to a Telegram channel, with Share and How-we-calculate buttons and the time in each reader's time zone
 
 ## Data Sources
 
-- **On-chain** (contracts read through toncenter): APY, 7-day APY and TVL of the six liquid staking tokens, and APY over the last 7 days and TVL of the Storm Trade GRAM and USDT vaults, see [ONCHAIN_INTEGRATION.md](ONCHAIN_INTEGRATION.md)
+- **On-chain** (contracts read through toncenter): APY, 7-day APY and TVL of the seven liquid staking tokens (with TON Whales' wsTON), and APY over the last 7 days and TVL of the Storm Trade GRAM and USDT vaults, see [ONCHAIN_INTEGRATION.md](ONCHAIN_INTEGRATION.md)
 - **DefiLlama**: EVAA and other TON pools, Ethena sUSDe APY and tsUSDe TVL on TON, the GRAM price, the header TVL
 - **Swap.coffee**: Ston.fi and Tonco pools, and the fallback for liquid staking and Storm Trade rows
 - **Palette**: APR overrides for EVAA's USDT pools; for the liquid staking tokens (APR, and Hipo's TVL) and the Storm Trade vaults (APR) only when they fall back to Swap.coffee, otherwise a logged cross-check
 - **GTC (Gift To Credit)**: GRAM and USDT lending vaults
+- **tonapi**: TON Whales native staking (the open nominator pools; their own APY estimate, marked "est.")
 - **DeDust**: GRAM-USDT pools (and impermanent-loss-free pairs from $10K TVL), from DeDust's own API
 
 ## Setup
@@ -60,7 +61,7 @@ Without a bot token (no `.env` in the current directory and no `TELEGRAM_BOT_TOK
 
 ## Deployment (GitHub Actions)
 
-`.github/workflows/daily-post.yml` runs `deno task post`. An outside scheduler (cron-job.org) starts it at 08:00 UTC through GitHub's `workflow_dispatch` API, with a retry at 08:30, because GitHub's own schedule starts runs hours late; `daily-post-fallback.yml` keeps that late schedule as a fallback. The bot posts at most once per UTC day, and a healthchecks.io watchdog alerts in Telegram when a post does not go out. Setup and day-to-day details: [HOSTING.md](HOSTING.md).
+`.github/workflows/daily-post.yml` runs `deno task post`. An outside scheduler (cron-job.org) starts it at 08:00 UTC through GitHub's `workflow_dispatch` API, because GitHub's own schedule starts runs hours late; `daily-post-fallback.yml` keeps that late schedule as a fallback. The bot posts at most once per UTC day. A retry at 08:30 and a healthchecks.io watchdog are supported but not set up for this channel yet (see "Current setup" in HOSTING.md). Setup and day-to-day details: [HOSTING.md](HOSTING.md).
 
 1. Add repository secrets `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHANNEL_ID` (and optionally `TONCENTER_API_KEY`, which speeds up the on-chain engine, `HC_PING_URL` for the watchdog, and `TEST_TELEGRAM_BOT_TOKEN` / `TEST_TELEGRAM_CHANNEL_ID` for test runs).
 2. Push to `main`: the next post uses the new version (a run on a day whose post is already out does nothing).

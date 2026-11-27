@@ -137,9 +137,39 @@ function hipoTreasury(stack: StackEntry[]): RateSnapshot {
   return { coins: num(stack[0], "total_coins"), tokens: num(stack[1], "total_tokens") };
 }
 
+/**
+ * TON Whales liquid staking (wsTON) get_pool_status, 15 values in Nov 2026:
+ * [1] rate (1e9 = 1 GRAM per wsTON), [10] wsTON supply, [11] GRAM the pool
+ * accounts for. The rate equals [11] / [10] (checked on archival states from
+ * 2026-11-18 to 11-26; deposits between payouts move the ratio by about
+ * 1e-5), which pins the layout; anything else fails closed. The rate steps
+ * once per 131,072 s cycle, like Tonstakers'. The APY follows the published
+ * rate [1], not the drifting ratio: coins are taken as rate x supply, which
+ * stays within 1e-4 of [11] for the TVL.
+ */
+function whalesLiquidPool(stack: StackEntry[]): RateSnapshot {
+  if (stack.length !== 15) throw new Error(`unknown get_pool_status layout: ${stack.length} values`);
+  const rate = num(stack[1], "rate");
+  const tokens = num(stack[10], "wston_supply");
+  const coins = num(stack[11], "gram_balance");
+  if (!(tokens > 0n) || !(coins > 0n) || !(rate > 0n)) throw new Error("get_pool_status: empty pool");
+  const implied = (Number(coins) / Number(tokens)) * 1e9;
+  if (!(Math.abs(implied - Number(rate)) <= Number(rate) * 1e-4)) {
+    throw new Error("get_pool_status: the rate is not GRAM balance / wsTON supply");
+  }
+  return { coins: (rate * tokens) / 1_000_000_000n, tokens };
+}
+
+/**
+ * Every LST row reads "GRAM (<token>)": what you deposit, then the token you
+ * get. Until 2026-11-27 three of them used Swap.coffee's "GRAM-tsTON (tsTON)"
+ * style, which looked the same as a GRAM/tsTON DEX pool. Matching with the
+ * fallback rows goes by contract address or by the label (poolMeta), so the
+ * asset can differ from Swap.coffee's.
+ */
 export const LSTS: LstSpec[] = [
   {
-    source: "Tonstakers", asset: "GRAM-tsTON", poolMeta: "tsTON", urlKey: "tonstakers",
+    source: "Tonstakers", asset: "GRAM", poolMeta: "tsTON", urlKey: "tonstakers",
     address: "EQCkWxfyhAkim3g2DjKQQg8T5P4g-Q1-K_jErGcDJZ4i-vqR", method: "get_pool_full_data",
     extract: liquidStakingPool,
   },
@@ -149,7 +179,7 @@ export const LSTS: LstSpec[] = [
     extract: liquidStakingPool,
   },
   {
-    source: "Hipo", asset: "GRAM-hGRAM", poolMeta: "hGRAM", urlKey: "hipo",
+    source: "Hipo", asset: "GRAM", poolMeta: "hGRAM", urlKey: "hipo",
     address: "EQCLyZHP4Xe8fpchQz76O-_RmUhaVc_9BAoGyJrwJrcbz2eZ", method: "get_treasury_state",
     extract: hipoTreasury,
   },
@@ -159,14 +189,20 @@ export const LSTS: LstSpec[] = [
     extract: liquidStakingPool,
   },
   {
-    source: "Bemo", asset: "GRAM-stTON", poolMeta: "stTON", urlKey: "bemo",
+    source: "Bemo", asset: "GRAM", poolMeta: "stTON", urlKey: "bemo",
     address: "EQDNhy-nxYFgUqzfUzImBEP67JqsyMIcyk2S5_RwNNEYku0k", method: "get_full_data",
     extract: bemoFinancial,
   },
   {
-    source: "Bemo", asset: "GRAM-bmTON", poolMeta: "bmTON", urlKey: "bemo",
+    source: "Bemo", asset: "GRAM", poolMeta: "bmTON", urlKey: "bemo",
     address: "EQCSxGZPHqa3TtnODgMan8CEM0jf6HpY-uon_NMeFgjKqkEY", method: "get_full_data",
     extract: bemoFinancial,
+  },
+  {
+    // Since 2026-11-27. About $1M TVL; 13.5% realized over the 30 days to 11-26.
+    source: "TON Whales", asset: "GRAM", poolMeta: "wsTON", urlKey: "ton-whales",
+    address: "EQB0SoxuGDx5qjVt0P_bPICFeWdFLBmVopHhjgfs0q-wsTON", method: "get_pool_status",
+    extract: whalesLiquidPool,
   },
 ];
 

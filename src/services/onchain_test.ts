@@ -46,6 +46,16 @@ function bemoStack(tokens: bigint, coins: bigint): [string, string][] {
   return stack;
 }
 
+/** A TON Whales wsTON get_pool_status stack (15 values live): [1] rate, [10] wsTON supply, [11] GRAM balance */
+function whalesStack(supply: bigint, balance: bigint, size = 15, rate = (balance * 1_000_000_000n) / supply): [string, string][] {
+  const stack = filler(size);
+  stack[1] = numEntry(rate);
+  stack[10] = numEntry(supply);
+  stack[11] = numEntry(balance);
+  stack[12] = numEntry(balance);
+  return stack;
+}
+
 const byName = (source: string, poolMeta: string) => LSTS.find((s) => s.source === source && s.poolMeta === poolMeta)!;
 
 /** A Storm get_vault_data stack: [1] LP rate (1e9 = 1), [2] SLP supply, [3] free, [4] locked balance */
@@ -89,16 +99,17 @@ Deno.test("reconcile: normal readings, a miscounted cycle, a doubtful week", () 
   assertEquals(reconcile(null, null), null);
 });
 
-Deno.test("every LST row keeps the label of the row it replaces", () => {
+Deno.test("every LST row reads GRAM (token) and keeps the label of the row it replaces", () => {
   assertEquals(
     LSTS.map((s) => `${s.source} ${s.asset} (${s.poolMeta})`),
     [
-      "Tonstakers GRAM-tsTON (tsTON)",
+      "Tonstakers GRAM (tsTON)",
       "Stakee GRAM (STAKED)",
-      "Hipo GRAM-hGRAM (hGRAM)",
+      "Hipo GRAM (hGRAM)",
       "KTON GRAM (KTON)",
-      "Bemo GRAM-stTON (stTON)",
-      "Bemo GRAM-bmTON (bmTON)",
+      "Bemo GRAM (stTON)",
+      "Bemo GRAM (bmTON)",
+      "TON Whales GRAM (wsTON)",
     ],
   );
 });
@@ -119,6 +130,30 @@ Deno.test("layouts are recognised by their number of values, anything else fails
   assert(fails(() => byName("Tonstakers", "tsTON").extract(filler(31))));
   assert(fails(() => byName("Hipo", "hGRAM").extract(filler(2))));
   assert(fails(() => byName("Bemo", "bmTON").extract(filler(16))));
+});
+
+Deno.test("wsTON is read only when its rate is GRAM balance / supply", () => {
+  const fails = (fn: () => unknown) => {
+    try {
+      fn();
+      return false;
+    } catch {
+      return true;
+    }
+  };
+  const wston = byName("TON Whales", "wsTON");
+  assertEquals(wston.method, "get_pool_status");
+  // Live values of 2026-11-26: rate 1.185409671, 857,225 wsTON for 1,016,163 GRAM
+  const supply = 857_225_320_000_000n;
+  const balance = 1_016_162_800_000_000n;
+  const atRate = (1_185_409_671n * supply) / 1_000_000_000n;
+  assertEquals(wston.extract(whalesStack(supply, balance, 15, 1_185_409_671n)), { coins: atRate, tokens: supply });
+  // Deposits between payouts move the ratio by about 1e-5: still accepted, and
+  // the reading follows the published rate, not the drifting balance
+  assertEquals(wston.extract(whalesStack(supply, balance + 6_000_000_000n, 15, 1_185_409_671n)).coins, atRate);
+  assert(fails(() => wston.extract(whalesStack(supply, balance, 16)))); // unknown layout
+  assert(fails(() => wston.extract(whalesStack(supply, balance, 15, 1_300_000_000n)))); // rate is not balance / supply
+  assert(fails(() => wston.extract(whalesStack(1n, 0n, 15, 1n)))); // empty pool
 });
 
 /** Stub toncenter: blocks a cycle and a week ago, stacks per address and moment */
@@ -512,6 +547,8 @@ function stubEngine(
       ? hipoStack(coins, supply)
       : spec.method === "get_full_data"
       ? bemoStack(supply, coins)
+      : spec.method === "get_pool_status"
+      ? whalesStack(supply, coins)
       : poolStack(spec.source === "KTON" ? 34 : 30, coins, supply);
   const vaultStacks: Record<string, Record<"now" | "week", [string, string][]>> = {
     [vault("GRAM").address]: {
