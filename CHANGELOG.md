@@ -5,6 +5,22 @@ All notable changes to TON Yields Bot will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-11-27
+
+### Added
+- "Since yesterday" block between the header and the TOP-5: protocols newly flagged as hacked, rows that entered or left the TOP-5, APY moves of at least 1 point and 10% of the old value (the 3 biggest, rows with a known TVL of $10K or more on both days), and rows that joined or left the post ("no data today" when the protocol has no row at all). GRAM-USDT pools are left out of it. It compares with what the channel's previous post showed (saved after each successful post, at most 7 days old), so it appears from the second post after the release. The classic post drops the block rather than pass Telegram's 4,096-character limit.
+- Weekly card on Mondays (UTC): a 1600x900 picture posted without a notification sound right after the daily post, with a Share button. It shows the 7-day APY of every liquid staking token measured on-chain and the best stablecoin pools with $100K+ TVL, plus the channel handle and the data providers. It is drawn in the run itself (an SVG laid out from font metrics, rendered by resvg-wasm with the bundled Inter fonts, SIL OFL). `WEEKLY_CARD=off` turns it off; `always` sends it after every post (for tests, still once per day and channel).
+- `serverless/`: a prototype of the interactive layer on Telegram Serverless, for the test bot only and not part of the daily run. It has a `/yields` widget in the private chat (TOP-5, GRAM and Stables tabs; 1.4 KB compressed against the 4 KB limit) and per-user ephemeral answers to `only:TON` / `only:STABLE` buttons under channel posts. It runs on sample data from the post of 2026-11-27; see serverless/README.md.
+- Rich message version of the post (Bot API 10.1 `sendRichMessage`): tables with APY, 7d, UR and TVL columns, one collapsible block per section, the legend and a footer. Off by default; `POST_FORMAT=rich` turns it on, and the classic post goes out if Telegram refuses the rich one (error 400). Telegram's web page of the channel (t.me/s), post embeds and RSS bridges show a rich post only as "Please open Telegram to view this post" (checked on the test channel and on @stables_apy and @kton_channel), so the public channel keeps the classic post until the owner decides.
+
+### Changed
+- Section names: "💎 GRAM YIELDS" (was "GRAM and related assets") and "💵 USDT YIELDS" (was "Stablecoins and related assets"), owner's choice of 2026-11-27; the rich version and the Serverless prototype use the same names.
+- grammY 1.21.1 to 1.45.1, the newest build published for Deno (Bot API 10.2).
+- From the code review before release: "Since yesterday" treats a pool as the same pool by its contract address, so an on-chain row and Swap.coffee's fallback row for one contract never show up as "left" and "joined" at once; it reports no APY move when the APY switched between the contract reading and a provider's figure; a TOP-5 row past a section's cap is recorded too; a quiet day reads "Quiet day: no notable changes since the last post.". The card shows only 7-day values (stablecoins by their 7-day value), never a hacked protocol, and needs at least 3 measured liquid staking tokens; its week is the 7 days before the post; its Share button has its own text.
+- `POST_FORMAT` and `WEEKLY_CARD` reach the GitHub run as repository variables (`TEST_` variants for test runs); see HOSTING.md step 5.
+- Errors from the Telegram API are logged without the bot token (a network failure used to carry the request URL into the log).
+- The post is prepared once (`prepareDigest`) and rendered as the classic HTML or as Rich HTML from the same data; shared text helpers moved to `src/formatters/text.ts`.
+
 ## [1.7.0] - 2026-11-27
 
 ### Added

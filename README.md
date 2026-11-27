@@ -12,6 +12,9 @@ Link - https://t.me/ton_yields_daily
 - APY with a 7-day average and direction arrows, utilisation for lending vaults, TVL with a ⚠️ flag below $10K, a 🚨 mark for hacked protocols
 - TON DeFi TVL with its 24h change in the header
 - Posts once a day to a Telegram channel, with Share and How-we-calculate buttons and the time in each reader's time zone
+- "Since yesterday" block: TOP-5 changes, notable APY moves, pools that joined or left, newly flagged hacks
+- A weekly image card on Mondays (liquid staking 7-day APY measured on-chain, the best stablecoin pools)
+- Optional rich message format (`POST_FORMAT=rich`): tables and collapsible sections in the app; the channel's web page shows such posts only as a stub, so the default stays the classic post
 
 ## Data Sources
 

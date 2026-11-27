@@ -25,8 +25,11 @@ export function publicPostUrl(channelId: string, messageId: number): string | nu
   return `https://t.me/${match[1]}/${messageId}`;
 }
 
-export function shareButton(postUrl: string): UrlButton {
-  const url = `https://t.me/share/url?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(SHARE_TEXT)}`;
+/** The line under the link when the Monday card is shared */
+export const CARD_SHARE_TEXT = "GRAM (TON) yields this week: liquid staking APY measured on-chain, the best stablecoin pools";
+
+export function shareButton(postUrl: string, text: string = SHARE_TEXT): UrlButton {
+  const url = `https://t.me/share/url?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(text)}`;
   return { text: "↗️ Share", url };
 }
 
@@ -35,9 +38,9 @@ export function howWeCalculateButton(pinnedUrl: string): UrlButton {
 }
 
 /** The buttons as one row, or no rows when neither link exists */
-export function postButtons(postUrl: string | null, pinnedUrl: string | null): UrlButton[][] {
+export function postButtons(postUrl: string | null, pinnedUrl: string | null, shareText: string = SHARE_TEXT): UrlButton[][] {
   const row: UrlButton[] = [];
-  if (postUrl) row.push(shareButton(postUrl));
+  if (postUrl) row.push(shareButton(postUrl, shareText));
   if (pinnedUrl) row.push(howWeCalculateButton(pinnedUrl));
   return row.length > 0 ? [row] : [];
 }

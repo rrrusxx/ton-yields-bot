@@ -1,86 +1,24 @@
-import type { GroupedYields, OrganizedYields, ProtocolGroup, YieldOpportunity } from "../types/yields.ts";
+import type { GroupedYields, ProtocolGroup, YieldOpportunity } from "../types/yields.ts";
+import type { SectionKey } from "../services/post_snapshot.ts";
 import { getTopYields } from "../services/defillama.ts";
 import { displayTicker, isHackedProtocol } from "../services/protocols.ts";
 import { fetchTonTVL, formatTVL } from "../services/tvl.ts";
 import { saveTvlSnapshot, calculateTvlChange, formatTvlChange } from "../services/tvl_history.ts";
 import { saveAllApySnapshots, calculateAll7DayAverages } from "../services/apy_history.ts";
+import {
+  displayText,
+  escapeHtml,
+  formatDateUTC,
+  formatTvl,
+  getApyDirection,
+  getRankEmoji,
+  lowTvlWarning,
+  safeText,
+} from "./text.ts";
 
-const SEPARATOR = "──────────────────────";
+export { displayText, escapeHtml };
 
-/**
- * Escape text for Telegram HTML parse mode. Pool, vault and protocol names
- * come from third-party APIs, so every dynamic string goes through this:
- * a single "<" or "&" would otherwise make Telegram reject the whole post,
- * and markup inside a name could inject a link. Also safe for href values.
- */
-export function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
-/** Longest third-party string shown in the post, in characters */
-const MAX_DISPLAY_LENGTH = 64;
-
-/**
- * Prepare a third-party string for one line of the post: replace C0 and C1
- * control characters (including NEL) and line or paragraph separators with
- * spaces (a line break in a name could fake extra rows), drop text-direction
- * controls and zero-width spaces (they could visually reorder the APY and TVL
- * of a row), collapse whitespace, repair lone surrogates and shorten very long
- * values with "…" (one huge name could push the post past Telegram's
- * 4,096-character limit). Escape the result with escapeHtml.
- */
-export function displayText(text: string): string {
-  const oneLine = String(text)
-    .toWellFormed()
-    .replace(/[\u0000-\u001F\u007F-\u009F\u2028\u2029]/g, " ")
-    .replace(/[\u061C\u200B\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  const chars = Array.from(oneLine);
-  return chars.length > MAX_DISPLAY_LENGTH
-    ? `${chars.slice(0, MAX_DISPLAY_LENGTH - 1).join("")}…`
-    : oneLine;
-}
-
-/** displayText, then escapeHtml: the way to put third-party text in the post */
-function safeText(text: string): string {
-  return escapeHtml(displayText(text));
-}
-
-/**
- * Rank emojis for TOP 5
- */
-function getRankEmoji(rank: number): string {
-  return ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"][rank - 1] ?? `${rank}.`;
-}
-
-/**
- * APY direction indicator vs 7-day average.
- * Uses a threshold of 5% relative or 0.3% absolute (whichever is larger)
- * to avoid noise on very low or very high APY pools.
- */
-function getApyDirection(current: number, avg7d: number): string {
-  const threshold = Math.max(0.3, avg7d * 0.05);
-  if (current > avg7d + threshold) return " ↑";
-  if (current < avg7d - threshold) return " ↓";
-  return "";
-}
-
-/**
- * Opportunities below this TVL get a low-liquidity warning marker.
- */
-const LOW_TVL_THRESHOLD = 10_000;
-
-/**
- * Returns a warning marker for low-TVL (low-liquidity) opportunities.
- */
-function lowTvlWarning(tvlUsd: number): string {
-  return tvlUsd < LOW_TVL_THRESHOLD ? " ⚠️" : "";
-}
+export const SEPARATOR = "──────────────────────";
 
 /**
  * The " | $1.2M" part of a row, or nothing when the TVL must not be shown:
@@ -99,23 +37,6 @@ function formatUtilization(utilizationPct?: number): string {
   }
   const fire = utilizationPct > 95 ? " 🔥" : "";
   return ` | UR ${utilizationPct.toFixed(1)}%${fire}`;
-}
-
-/**
- * Format TVL in human-readable format
- * e.g., 1500000 -> "$1.5M"
- */
-function formatTvl(tvlUsd: number): string {
-  if (tvlUsd >= 1_000_000_000) {
-    return `$${(tvlUsd / 1_000_000_000).toFixed(1)}B`;
-  }
-  if (tvlUsd >= 1_000_000) {
-    return `$${(tvlUsd / 1_000_000).toFixed(1)}M`;
-  }
-  if (tvlUsd >= 1_000) {
-    return `$${(tvlUsd / 1_000).toFixed(1)}K`;
-  }
-  return `$${tvlUsd.toFixed(0)}`;
 }
 
 /**
@@ -139,7 +60,7 @@ function formatApy(apy: number, avg7d?: number | null): string {
  * Format asset name with optional label, tickers in their usual spelling
  * ("TSUSDE" from DefiLlama reads "tsUSDe")
  */
-function formatAssetWithLabel(asset: string, label: string | null): string {
+export function formatAssetWithLabel(asset: string, label: string | null): string {
   if (label && label.length > 0) {
     return `${safeText(displayTicker(asset))} (${safeText(displayTicker(label))})`;
   }
@@ -194,7 +115,7 @@ function formatYieldLine(
 /**
  * Format protocol name with optional hyperlink
  */
-function formatProtocolLink(name: string, url: string): string {
+export function formatProtocolLink(name: string, url: string): string {
   if (url && url.length > 0) {
     return `<a href="${escapeHtml(url)}">${safeText(name)}</a>`;
   }
@@ -204,7 +125,7 @@ function formatProtocolLink(name: string, url: string): string {
 /**
  * Add auto-generated labels for duplicate assets without poolMeta
  */
-function addLabelsForDuplicates(yields: YieldOpportunity[]): Map<YieldOpportunity, string | null> {
+export function addLabelsForDuplicates(yields: YieldOpportunity[]): Map<YieldOpportunity, string | null> {
   const labels = new Map<YieldOpportunity, string | null>();
   const assetCounts = new Map<string, number>();
   const assetIndices = new Map<string, number>();
@@ -260,7 +181,7 @@ function formatProtocolGroup(group: ProtocolGroup, averages: Map<YieldOpportunit
   // Add each yield line
   yields.forEach((y, index) => {
     const label = labels.get(y);
-    const avg7d = y.onChain ? (y.apy7d ?? null) : (y.apy7d ?? (averages.get(y) || null));
+    const avg7d = shownAverage(y, averages);
     lines.push(formatYieldLine(y, index === yields.length - 1, label, avg7d));
   });
   
@@ -326,7 +247,7 @@ export function formatTopYieldsSection(yields: YieldOpportunity[], averages: Map
     const assetText = formatAssetWithLabel(y.asset, y.poolMeta);
 
     // Format APY with 7-day average and direction (a measured 7d value wins)
-    const avg7d = y.onChain ? (y.apy7d ?? null) : (y.apy7d ?? (averages.get(y) || null));
+    const avg7d = shownAverage(y, averages);
     const apyText = formatRowApy(y, avg7d);
 
     const protocolLink = formatProtocolLink(y.source, y.sourceUrl);
@@ -336,20 +257,6 @@ export function formatTopYieldsSection(yields: YieldOpportunity[], averages: Map
   result.push(`<blockquote expandable>${contentLines.join("\n")}</blockquote>`);
 
   return result.join("\n");
-}
-
-/**
- * Get current UTC date formatted
- */
-function getCurrentDateUTC(): string {
-  const now = new Date();
-  const options: Intl.DateTimeFormatOptions = {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    timeZone: "UTC",
-  };
-  return now.toLocaleDateString("en-US", options);
 }
 
 /**
@@ -407,13 +314,49 @@ export function organizeByProtocol(yields: YieldOpportunity[]): ProtocolGroup[] 
   return groups;
 }
 
+/** A section of the post, in the order shown */
+export interface DigestSection {
+  key: SectionKey;
+  title: string;
+  groups: ProtocolGroup[];
+  /** Per-protocol caps on shown rows (EVAA shows its 3 largest stablecoin pools) */
+  limits?: Map<string, number>;
+}
+
+/** A row as the post shows it, with the section and the label it is shown under */
+export interface ShownRow {
+  row: YieldOpportunity;
+  section: SectionKey;
+  label: string | null;
+}
+
+/** Everything both versions of the post (classic and rich) are built from */
+export interface DigestData {
+  now: Date;
+  /** TON DeFi TVL for the header; 0 when it could not be fetched */
+  tonTvl: number;
+  tvlChange: { change: number; changePercent: number } | null;
+  displayedCount: number;
+  activeCategories: number;
+  top5: YieldOpportunity[];
+  sections: DigestSection[];
+  averages: Map<YieldOpportunity, number>;
+  allPools: YieldOpportunity[];
+  /** Rows the post shows, section by section (EVAA rows past the cap left out) */
+  shown: ShownRow[];
+}
+
+/** The 7-day value a row shows: its own measured one, else the average of saved snapshots */
+export function shownAverage(y: YieldOpportunity, averages: Map<YieldOpportunity, number>): number | null {
+  return y.onChain ? (y.apy7d ?? null) : (y.apy7d ?? (averages.get(y) || null));
+}
+
 /**
- * Format the complete message for Telegram channel
- * Uses HTML parse mode for formatting
+ * Collect what the post shows. Saves today's APY snapshots before the 7-day
+ * averages are computed (so today counts) and today's header TVL after its
+ * 24h change is computed.
  */
-export async function formatChannelMessage(yields: GroupedYields): Promise<string> {
-  const sections: string[] = [];
-  
+export async function prepareDigest(yields: GroupedYields, now: Date = new Date()): Promise<DigestData> {
   // Collect all pools into a flat array for APY history tracking
   const allPools = [...yields.TON, ...yields.STABLE, ...yields.BTC, ...yields.ETH, ...yields.TON_USDT];
 
@@ -422,108 +365,113 @@ export async function formatChannelMessage(yields: GroupedYields): Promise<strin
   // Rows read on-chain carry their own measured 7d value; saving them would mix
   // their numbers into the history of the fallback rows that share their key.
   await saveAllApySnapshots(allPools.filter((y) => !y.onChain));
-  
-  // Calculate 7-day averages for all pools (includes today's data)
   const averages = await calculateAll7DayAverages(allPools);
-  
-  // Fetch TON TVL
+
+  // Header TVL and its change since the last saved snapshot
   const tonTvl = await fetchTonTVL();
-  
-  // Count displayed opportunities (EVAA capped at 3 in stable section)
-  const evaaDisplayed = Math.min(yields.STABLE.filter(y => y.source === "EVAA").length, 3);
-  const nonEvaaStable = yields.STABLE.filter(y => y.source !== "EVAA").length;
-  const displayedCount = yields.TON.length + evaaDisplayed + nonEvaaStable + yields.BTC.length + yields.ETH.length + yields.TON_USDT.length;
-  const activeCategories = [yields.TON, yields.STABLE, yields.BTC, yields.ETH, yields.TON_USDT].filter(c => c.length > 0).length;
+  let tvlChange: DigestData["tvlChange"] = null;
+  if (tonTvl > 0) {
+    tvlChange = await calculateTvlChange(tonTvl);
+    await saveTvlSnapshot(tonTvl);
+  }
+
+  const sections: DigestSection[] = [
+    { key: "TON", title: "💎 GRAM YIELDS", groups: organizeByProtocol(yields.TON) },
+    // EVAA capped at 3 pools to avoid clutter
+    { key: "STABLE", title: "💵 USDT YIELDS", groups: organizeByProtocol(yields.STABLE), limits: new Map([["EVAA", 3]]) },
+    // GRAM-USDT pools (impermanent loss risk) have their own section
+    { key: "TON_USDT", title: "🔄 YIELDS FOR GRAM-USDT POOLS", groups: organizeByProtocol(yields.TON_USDT) },
+    { key: "BTC", title: "₿ BTC AND RELATED ASSETS", groups: organizeByProtocol(yields.BTC) },
+    { key: "ETH", title: "⟠ ETH AND RELATED ASSETS", groups: organizeByProtocol(yields.ETH) },
+  ];
+  const shown: ShownRow[] = sections.flatMap((section) =>
+    section.groups.flatMap((group) => {
+      const limit = section.limits?.get(group.protocol);
+      const rows = limit ? group.yields.slice(0, limit) : group.yields;
+      const labels = addLabelsForDuplicates(rows);
+      return rows.map((row) => ({ row, section: section.key, label: labels.get(row) ?? row.poolMeta }));
+    })
+  );
+
+  return {
+    now,
+    tonTvl,
+    tvlChange,
+    displayedCount: shown.length,
+    activeCategories: sections.filter((s) => s.groups.length > 0).length,
+    top5: getTopYields(yields, 5),
+    sections,
+    averages,
+    allPools,
+    shown,
+  };
+}
+
+/**
+ * The classic post (Telegram HTML for sendMessage). `sinceBlock` is the
+ * "Since yesterday" block, placed between the header and the TOP-5.
+ */
+export function renderClassic(data: DigestData, sinceBlock = ""): string {
+  const sections: string[] = [];
 
   // Header
   sections.push("<b>TON Yields Daily</b>");
-  sections.push(`${getCurrentDateUTC()}`);
-  
-  // TON TVL (if available)
-  if (tonTvl > 0) {
-    // Calculate 24h change
-    const change = await calculateTvlChange(tonTvl);
-    
-    // Save today's snapshot for future comparisons
-    await saveTvlSnapshot(tonTvl);
-    
-    // Format TVL line with change
-    let tvlLine = `<i>💎 TON DeFi TVL: ${formatTVL(tonTvl)}`;
-    if (change) {
-      const changeStr = formatTvlChange(change.change, change.changePercent);
+  sections.push(formatDateUTC(data.now));
+
+  // TON TVL (if available) with its 24h change
+  if (data.tonTvl > 0) {
+    let tvlLine = `<i>💎 TON DeFi TVL: ${formatTVL(data.tonTvl)}`;
+    if (data.tvlChange) {
+      const changeStr = formatTvlChange(data.tvlChange.change, data.tvlChange.changePercent);
       tvlLine += ` <b>${changeStr}</b> 24h`;
     }
     tvlLine += `</i>`;
-    
     sections.push(tvlLine);
   }
 
-  sections.push(`<i>${displayedCount} opportunities · ${activeCategories} categories</i>`);
+  sections.push(`<i>${data.displayedCount} opportunities · ${data.activeCategories} categories</i>`);
   sections.push("");
-  
+
+  if (sinceBlock) {
+    sections.push(sinceBlock);
+    sections.push("");
+  }
+
   // Top 5 Yields section
-  const top5 = getTopYields(yields, 5);
-  const topSection = formatTopYieldsSection(top5, averages);
+  const topSection = formatTopYieldsSection(data.top5, data.averages);
   if (topSection) {
     sections.push(topSection);
     sections.push("");
   }
-  
-  // TON and related assets section
-  const tonGroups = organizeByProtocol(yields.TON);
-  const tonSection = formatCategorySection("💎 GRAM AND RELATED ASSETS", tonGroups, averages);
-  if (tonSection) {
-    sections.push(tonSection);
-    sections.push("");
-  }
-  
-  // Stablecoins section (EVAA capped at 3 pools to avoid clutter)
-  const stableGroups = organizeByProtocol(yields.STABLE);
-  const stableLimits = new Map([["EVAA", 3]]);
-  const stableSection = formatCategorySection("💵 STABLECOINS AND RELATED ASSETS", stableGroups, averages, stableLimits);
-  if (stableSection) {
-    sections.push(stableSection);
-    sections.push("");
-  }
-  
-  // TON-USDT pools section (impermanent loss risk)
-  const tonUsdtGroups = organizeByProtocol(yields.TON_USDT);
-  const tonUsdtSection = formatCategorySection("🔄 YIELDS FOR GRAM-USDT POOLS", tonUsdtGroups, averages);
-  if (tonUsdtSection) {
-    sections.push(tonUsdtSection);
-    sections.push("");
-  }
-  
-  // BTC section (if any)
-  const btcGroups = organizeByProtocol(yields.BTC);
-  const btcSection = formatCategorySection("₿ BTC AND RELATED ASSETS", btcGroups, averages);
-  if (btcSection) {
-    sections.push(btcSection);
-    sections.push("");
+
+  // Asset sections: GRAM, stablecoins, GRAM-USDT pools, BTC, ETH
+  for (const section of data.sections) {
+    const text = formatCategorySection(section.title, section.groups, data.averages, section.limits);
+    if (text) {
+      sections.push(text);
+      sections.push("");
+    }
   }
 
-  // ETH section (if any)
-  const ethGroups = organizeByProtocol(yields.ETH);
-  const ethSection = formatCategorySection("⟠ ETH AND RELATED ASSETS", ethGroups, averages);
-  if (ethSection) {
-    sections.push(ethSection);
-    sections.push("");
-  }
-  
-  // Footer
+  // Footer: the legend explains only rows the post shows (not EVAA rows past the cap)
   sections.push(SEPARATOR);
   sections.push("");
-  // The legend explains only rows the post shows (not EVAA rows past the cap)
-  const shownEvaaStable = new Set(stableGroups.find((g) => g.protocol === "EVAA")?.yields.slice(0, 3) ?? []);
-  const shownRows = allPools.filter((y) => !(y.assetType === "STABLE" && !y.isTonUsdtPool && y.source === "EVAA") || shownEvaaStable.has(y));
-  sections.push(...formatLegend(shownRows));
-  sections.push(formatSourcesLine(allPools, new Date()));
+  sections.push(...formatLegend(data.shown.map((s) => s.row)));
+  sections.push(formatSourcesLine(data.allPools, data.now));
 
   return sections.join("\n");
 }
 
+/**
+ * Format the complete message for Telegram channel
+ * Uses HTML parse mode for formatting
+ */
+export async function formatChannelMessage(yields: GroupedYields): Promise<string> {
+  return renderClassic(await prepareDigest(yields));
+}
+
 /** A Tonco-style concentrated-liquidity label: "CL" or "CL v1" (not DeDust's "Classic 0.10%") */
-function isConcentratedLabel(label: string | null): boolean {
+export function isConcentratedLabel(label: string | null): boolean {
   return label !== null && /^CL( |$)/.test(label);
 }
 

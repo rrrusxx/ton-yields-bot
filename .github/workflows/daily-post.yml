@@ -96,6 +96,12 @@ jobs:
           # Without the secret no signal is sent.
           HC_PING_URL: ${{ inputs.target != 'test' && secrets.HC_PING_URL || '' }}
           POST_FORCE: ${{ inputs.force && 'true' || 'false' }}
+          # Optional repository variables (Settings > Secrets and variables >
+          # Actions > Variables). Unset, they keep the defaults: the classic
+          # post and the Monday card. Test runs read their own TEST_ variables,
+          # so a test never changes the real channel's settings.
+          POST_FORMAT: ${{ inputs.target == 'test' && vars.TEST_POST_FORMAT || inputs.target != 'test' && vars.POST_FORMAT || '' }}
+          WEEKLY_CARD: ${{ inputs.target == 'test' && vars.TEST_WEEKLY_CARD || inputs.target != 'test' && vars.WEEKLY_CARD || '' }}
 
       # Save the KV store even if the post step failed, so the history is
       # never lost. Test runs leave the production history alone.

@@ -5,7 +5,12 @@
 ## 🔥 Next
 
 - [ ] **Owner, after v1.7.0:** new channel description, the pinned "How we calculate" note (the button links to the pinned post), the welcome message, a release note (drafts prepared by the agent).
-- [ ] **Growth stage 2:** a "since yesterday" block, a weekly image card (protocol reposts, the owner's X), a Rich Messages pilot in the test channel with a check of the t.me/s web copy.
+- [ ] **Serverless prototype (serverless/, test bot):** waiting for access. Serverless is a beta with a waitlist; the owner asked for both bots on 2026-11-27. When BotFather lets him in: turn it on for @ton_yields_test_bot and log in to the CLI (serverless/README.md, Setup), then deploy, check `/yields` and a channel button in @ton_yields_test. Production next: a JSON feed of the daily snapshot (with the GitHub Pages page), Serverless on @ton_yields_bot, "GRAM only" / "Stables only" buttons under the daily post.
+- [ ] **Owner decision: rich or classic public post.** The rich version (v1.8.0, `POST_FORMAT=rich`) has real tables in the app, but the channel's web page, embeds and RSS show it as "Please open Telegram to view this post". Options: keep classic (now), switch, or switch together with the stage 3 web page.
+- [ ] **Growth stage 3:** a static "GRAM (TON) yields today" page on GitHub Pages, updated by the daily run (search and AI answers; also the web copy if the post goes rich), evening alerts on big moves, short explainers; drafts of the Monday card's X posts.
+- [ ] **Fallback LST rows keep the old label.** When an on-chain read fails, Swap.coffee's row stands in and reads "GRAM-tsTON (tsTON)" instead of "GRAM (tsTON)" (Tonstakers, Hipo, Bemo; `lstProtocols` in swapcoffee.ts lists only Storm, KTON and Stakee). "Since yesterday" already treats both as one pool by address.
+- [ ] **Risk to check:** DefiLlama's llms.txt lists yields.llama.fi/pools (EVAA, Ethena and others come from it) as deprecated on the free host; find the replacement before it is switched off.
+- [ ] **Owner decision: a hacks feed.** api.llama.fi/hacks is free but not part of DefiLlama's documented free API (its terms limit such use) and lists hacks 4 to 5 days late (Affluent: 2026-10-16, listed on 10-20/21). Today the 🚨 flag stays the manual HACKED_PROTOCOLS list.
 
 - [ ] **Align the on-chain windows to the validation round** (start of the round from config param 34 or Hipo's settled round, plus a fixed offset away from payout times), so a KTON or Bemo payout near "now" can never be miscounted.
 - [ ] **On-chain engine, part 2:** EVAA (`getAssetRates`) and Ethena tsUSDe on TON (`getTotalAssets`/`getTotalShares`).
@@ -19,6 +24,7 @@
 
 ## ✅ Recently Completed
 
+- [x] **Growth stage 2** (v1.8.0, Nov 27, 2026): "Since yesterday" block (from the second post after the release); Monday image card (1600x900, drawn in the run); rich message version tested in @ton_yields_test (off in production); grammY 1.45.1
 - [x] **Growth stage 1** (v1.7.0, Nov 27, 2026): TON Whales native staking (estimate) and wsTON (on-chain); Share and How-we-calculate buttons; footer time in the reader's time zone; "GRAM (<token>)" labels for every LST, v1/v2 and CL labels for DEX pools; ticker spelling; legend only for markers shown; Affluent removed
 
 - [x] **On-time start live** (Nov 25, 2026): a cron-job.org job starts the post at 08:00 UTC with a fine-grained GitHub token (expires Nov 24, 2027); its test run got 204 and the run stopped on the day's marker

@@ -1,0 +1,14 @@
+{
+  "name": "ton-yields-serverless",
+  "private": true,
+  "type": "module",
+  "description": "Interactive layer of TON Yields Bot on Telegram Serverless: the /yields widget and per-user answers to buttons under channel posts",
+  "scripts": {
+    "build": "deno run --allow-read --allow-write scripts/build.ts",
+    "status": "tgcloud status",
+    "deploy": "deno run --allow-read --allow-write scripts/build.ts && tgcloud push"
+  },
+  "devDependencies": {
+    "@tgcloud/cli": "0.2.0"
+  }
+}

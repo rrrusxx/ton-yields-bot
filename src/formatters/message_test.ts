@@ -53,7 +53,7 @@ Deno.test("displayText keeps third-party text on one short line", () => {
 });
 
 Deno.test("third-party names cannot break or inject markup", () => {
-  const section = formatCategorySection("💎 GRAM AND RELATED ASSETS", organizeByProtocol([
+  const section = formatCategorySection("💎 GRAM YIELDS", organizeByProtocol([
     row({
       source: `Evil <a href="https://phish.example">Click</a>`,
       sourceUrl: `https://example.org/?a=1&b="2"`,
@@ -75,7 +75,7 @@ Deno.test("hacked protocol is flagged, shown without TVL and listed last", () =>
   ]);
   assertEquals(groups.map((g) => g.protocol), ["Hipo", "KTON", "Affluent"]);
 
-  const section = formatCategorySection("💎 GRAM AND RELATED ASSETS", groups, noAverages);
+  const section = formatCategorySection("💎 GRAM YIELDS", groups, noAverages);
   assertStringIncludes(section, "Affluent</a> 🚨 Hacked</b>");
   // DefiLlama's capitals are shown in the token's own spelling
   assertStringIncludes(section, "└ GRAM-tsTON: 11.8%</blockquote>");
@@ -95,7 +95,7 @@ Deno.test("rows with hidden TVL show no TVL part", () => {
 });
 
 Deno.test("a measured 7d value is shown without any saved history", () => {
-  const section = formatCategorySection("💎 GRAM AND RELATED ASSETS", organizeByProtocol([
+  const section = formatCategorySection("💎 GRAM YIELDS", organizeByProtocol([
     row({ source: "Tonstakers", asset: "GRAM-tsTON", poolMeta: "tsTON", apyTotal: 12.06, apy7d: 12.06, onChain: true, tvlUsd: 155_000_000 }),
     row({ source: "Stakee", asset: "GRAM", poolMeta: "STAKED", apyTotal: 14.6, apy7d: 13.7, onChain: true, tvlUsd: 22_000_000 }),
   ]), noAverages);
@@ -106,7 +106,7 @@ Deno.test("a measured 7d value is shown without any saved history", () => {
 Deno.test("an on-chain row without a trustworthy 7d value shows none, even with saved history", () => {
   const onchain = row({ source: "KTON", poolMeta: "KTON", apyTotal: 13.4, onChain: true, tvlUsd: 2_000_000 });
   const averages = new Map<YieldOpportunity, number>([[onchain, 13.0]]);
-  const section = formatCategorySection("💎 GRAM AND RELATED ASSETS", organizeByProtocol([onchain]), averages);
+  const section = formatCategorySection("💎 GRAM YIELDS", organizeByProtocol([onchain]), averages);
   assertStringIncludes(section, "└ GRAM (KTON): 13.4% | $2.0M");
 });
 
@@ -144,13 +144,13 @@ Deno.test("an estimated APY is marked est. and shows no 7-day value", () => {
     source: "TON Whales", poolMeta: "native staking", apyTotal: 12.6154, apyBase: 12.6154, apyEstimate: true, tvlUsd: 15_700_000,
   });
   const averages = new Map<YieldOpportunity, number>([[whales, 12.0]]);
-  const section = formatCategorySection("💎 GRAM AND RELATED ASSETS", organizeByProtocol([whales]), averages);
+  const section = formatCategorySection("💎 GRAM YIELDS", organizeByProtocol([whales]), averages);
   assertStringIncludes(section, "└ GRAM (native staking): 12.6% est. | $15.7M");
   assertStringIncludes(formatTopYieldsSection([whales], averages), "GRAM (native staking): 12.6% est. | $15.7M");
 });
 
 Deno.test("tickers keep their usual spelling", () => {
-  const section = formatCategorySection("💵 STABLECOINS AND RELATED ASSETS", organizeByProtocol([
+  const section = formatCategorySection("💵 USDT YIELDS", organizeByProtocol([
     row({ source: "EVAA", asset: "TSUSDE", poolMeta: "Main", apyTotal: 0.16, tvlUsd: 33_400 }),
     row({ source: "Ethena", asset: "tsUSDE", apyTotal: 4.95, tvlUsd: 1_650_000 }),
   ]), noAverages);

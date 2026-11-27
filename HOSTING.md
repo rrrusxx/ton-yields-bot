@@ -99,6 +99,28 @@ gh secret set TEST_TELEGRAM_BOT_TOKEN --repo rrrusxx/ton-yields-bot
 gh secret set TEST_TELEGRAM_CHANNEL_ID --repo rrrusxx/ton-yields-bot
 ```
 
+### 5. Optional: post format and weekly card (since v1.8.0)
+
+Two repository variables (not secrets) change what the run sends; without them it sends the classic post and the Monday card. Production reads `POST_FORMAT` and `WEEKLY_CARD`; a test run reads `TEST_POST_FORMAT` and `TEST_WEEKLY_CARD`, so a test never changes the real channel.
+
+Stop the Monday card:
+
+```bash
+gh variable set WEEKLY_CARD --body off --repo rrrusxx/ton-yields-bot
+```
+
+Send the rich message in test runs only:
+
+```bash
+gh variable set TEST_POST_FORMAT --body rich --repo rrrusxx/ton-yields-bot
+```
+
+Go back to the defaults:
+
+```bash
+gh variable delete WEEKLY_CARD --repo rrrusxx/ton-yields-bot
+```
+
 ### Switching over to v1.6.0 (once)
 
 1. Push v1.6.0 only after the day's post from the old version is out. The push removes the schedule from `daily-post.yml`; a day whose late scheduled run had not started yet would get no post, and the fallback's first run is the next day.

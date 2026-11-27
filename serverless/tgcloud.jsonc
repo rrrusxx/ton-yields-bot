@@ -1,0 +1,4 @@
+{
+  "$schema": "./node_modules/@tgcloud/cli/schema/tgcloud.json"
+  // No Mini App front-end, so nothing static to host.
+}

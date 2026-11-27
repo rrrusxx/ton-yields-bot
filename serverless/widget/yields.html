@@ -1,0 +1,57 @@
+<style>
+body{margin:0;padding:8px 12px max(10px,env(safe-area-inset-bottom))}
+#d{color:var(--tg-theme-hint-color);font-size:.85em}
+#t{display:flex;gap:6px;margin:8px 0 6px}
+#t button{flex:1;margin:0;font-size:.85em;background:var(--tg-theme-secondary-bg-color);color:var(--tg-theme-text-color)}
+#t button.on{background:var(--tg-theme-button-color);color:var(--tg-theme-button-text-color)}
+table{width:100%;border-collapse:collapse;margin:0;font-variant-numeric:tabular-nums}
+td{padding:4px 0;vertical-align:baseline}
+td.n{text-align:right;white-space:nowrap;padding-left:10px}
+.h{color:var(--tg-theme-hint-color);font-size:.85em}
+#f{display:flex;justify-content:space-between;gap:8px;margin-top:6px}
+</style>
+<div id="d">GRAM (TON) yields</div>
+<div id="t"><button data-k="top" class="on">TOP-5</button><button data-k="TON">GRAM</button><button data-k="STABLE">Stables</button></div>
+<table id="r"></table>
+<div id="f" class="h"><span id="s"></span><a href="https://t.me/ton_yields_daily">Daily post</a></div>
+<script>
+var W = window.TelegramWidget, $ = function (i) { return document.getElementById(i); };
+var R = $("r"), S = $("s"), M = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"], C = {}, k = "top";
+function esc(x) { return String(x).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+function take(key, json) {
+  try {
+    var v = JSON.parse(json);
+    if (v && v.r) { C[key] = v; if (v.d) $("d").textContent = "GRAM (TON) yields · " + v.d; }
+  } catch (e) {}
+}
+function draw() {
+  var v = C[k];
+  if (!v) { R.innerHTML = ""; return; }
+  R.innerHTML = v.r.map(function (x, i) {
+    var f = x[4] || "";
+    return "<tr><td>" + (k == "top" ? M[i] + " " : "") + "<b>" + esc(x[0]) + "</b> " + esc(x[1]) + "</td>" +
+      "<td class=n><b>" + Number(x[2]).toFixed(1) + "%</b>" + (f.indexOf("e") >= 0 ? " est." : "") + "</td>" +
+      "<td class='n h'>" + (f.indexOf("h") >= 0 ? "🚨" : esc(x[3]) + (f.indexOf("w") >= 0 ? " ⚠️" : "")) + "</td></tr>";
+  }).join("");
+  S.textContent = v.m ? "+" + v.m + " more in the post" : "";
+}
+$("t").addEventListener("click", function (e) {
+  var b = e.target;
+  if (!b || b.tagName != "BUTTON") return;
+  k = b.getAttribute("data-k");
+  var all = document.querySelectorAll("#t button");
+  for (var i = 0; i < all.length; i++) all[i].className = all[i] == b ? "on" : "";
+  if (C[k]) { draw(); return; }
+  var want = k;
+  R.innerHTML = "";
+  S.textContent = "Loading…";
+  W.request("s:" + want).then(function (a) { take(want, a.result); if (k == want) draw(); },
+    function (er) { if (k == want) S.textContent = er.code == "BUSY" ? "Busy, tap again" : "Could not load (" + er.code + ")"; });
+});
+if (W) {
+  take("top", W.publicData);
+  draw();
+  W.onEvent("publicDataChanged", function () { take("top", W.publicData); if (k == "top") draw(); });
+  W.request("s:top").then(function (a) { take("top", a.result); if (k == "top") draw(); }, function () {});
+}
+</script>

@@ -75,4 +75,32 @@ export const config = {
 
   /** TOP-5 eligibility: an APY above this (in %) is treated as a data glitch */
   top5MaxApy: 100,
+
+  /**
+   * Format of the daily post: "classic" (sendMessage, the default) or "rich"
+   * (sendRichMessage: tables and collapsible sections). Set POST_FORMAT=rich
+   * to send the rich message; the classic post goes out if Telegram refuses it.
+   */
+  postFormat: postFormatFrom(Deno.env.get("POST_FORMAT")),
+
+  /**
+   * The weekly card (src/card/weekly.ts): "monday" (the default) sends it
+   * after Monday's post, "off" never, "always" after every post (for test
+   * runs; still once per day and channel).
+   */
+  weeklyCard: weeklyCardFrom(Deno.env.get("WEEKLY_CARD")),
 } as const;
+
+export type WeeklyCardMode = "monday" | "off" | "always";
+
+export function weeklyCardFrom(value: string | undefined): WeeklyCardMode {
+  const v = value?.trim().toLowerCase();
+  return v === "off" || v === "always" ? v : "monday";
+}
+
+export type PostFormat = "classic" | "rich";
+
+/** "rich" only when asked for exactly; anything else keeps the classic post */
+export function postFormatFrom(value: string | undefined): PostFormat {
+  return value?.trim().toLowerCase() === "rich" ? "rich" : "classic";
+}
