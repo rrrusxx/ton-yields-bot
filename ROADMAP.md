@@ -4,7 +4,7 @@
 
 Telegram bot that aggregates yield opportunities from TON DeFi (the TON coin is called GRAM since June 2026), posting daily summaries to a Telegram channel.
 
-**Current Version:** v1.8.0  
+**Current Version:** v1.8.1  
 **Status:** ✅ In production (GitHub Actions, started at 08:00 UTC by a cron-job.org job set up on 2026-11-25, with GitHub's late fallback schedule as the backup; see HOSTING.md)
 
 ---
@@ -213,7 +213,10 @@ For the current order of work see "Status and Plan" at the top. The lists below 
 
 ## 📅 Version History
 
-### v1.8.0 (Current) - November 2026
+### v1.8.1 (Current) - November 2026
+- Rich post: APY numbers line up (markers moved to the 7d column); the Share button removed; the public channel switches to the rich post (POST_FORMAT=rich)
+
+### v1.8.0 - November 2026
 - "Since yesterday" block; Monday image card; optional rich message version of the post (POST_FORMAT=rich); grammY 1.45.1
 
 ### v1.7.0 - November 2026

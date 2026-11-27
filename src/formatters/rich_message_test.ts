@@ -51,7 +51,7 @@ Deno.test("the rich post has a header, a TOP-5 table, one collapsible table per 
   assertStringIncludes(html, "<h4>🏆 Top 5 yield opportunities</h4>");
   assertStringIncludes(html, `<tr><td>🥇</td><td><a href="https://example.org/">TON Whales</a> GRAM (wsTON)</td><td align="right"><b>13.4%</b></td><td align="right">13.2%</td><td align="right">$1.0M</td></tr>`);
   // One protocol with two rows spans them in the protocol column
-  assertStringIncludes(html, `<td rowspan="2" valign="top"><b><a href="https://example.org/">TON Whales</a></b></td><td>GRAM (native staking)</td><td align="right"><b>12.7% est.</b></td><td align="right"></td>`);
+  assertStringIncludes(html, `<td rowspan="2" valign="top"><b><a href="https://example.org/">TON Whales</a></b></td><td>GRAM (native staking)</td><td align="right"><b>12.7%</b></td><td align="right">est.</td>`);
   assertStringIncludes(html, "<details><summary><b>💎 GRAM Yields</b> · 3</summary>");
   // Empty sections are left out, no UR column without utilisation rates
   assertFalse(html.includes("Stablecoins"));
@@ -74,6 +74,18 @@ Deno.test("the rich legend names only markers the post shows", () => {
   assertStringIncludes(html, `<td align="right">$2.0K ⚠️</td>`);
   assertStringIncludes(html, "<p><i>UR utilisation rate (🔥 above 95%) · ⚠️ TVL below $10K · CL concentrated liquidity: an LP earns only while the price is in its range</i></p>");
   assertFalse(html.includes("est. the pool"));
+});
+
+Deno.test("the APY column holds numbers only, so it lines up; the arrow sits in front of the 7d value", () => {
+  const gtc = row({ source: "GTC", asset: "USDT vault", assetType: "STABLE", apyTotal: 28.7, tvlUsd: 36_500 });
+  const evaa = row({ source: "EVAA", asset: "USDT", assetType: "STABLE", poolMeta: "Main", apyTotal: 2.0, tvlUsd: 560_000 });
+  const data = digestOf([], [gtc, evaa], [gtc]);
+  data.averages.set(gtc, 27.1).set(evaa, 2.0);
+  const html = renderRich(data);
+  assertStringIncludes(html, `<td align="right"><b>28.7%</b></td><td align="right">↑ 27.1%</td>`);
+  assertStringIncludes(html, `<td align="right"><b>2.0%</b></td><td align="right">2.0%</td>`);
+  assertFalse(/<b>[0-9.]+%\s*[↑↓]/.test(html), "an arrow next to an APY number");
+  assertStringIncludes(html, "↑↓ in 7d: today's APY is above or below its 7-day value");
 });
 
 Deno.test("hacked protocols show no TVL; third-party names are escaped; EVAA keeps its cap of 3", () => {

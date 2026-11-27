@@ -5,6 +5,17 @@ All notable changes to TON Yields Bot will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.1] - 2026-11-27
+
+### Changed
+- The "Share" button is gone from the daily post and the weekly card (owner's choice): Forward does the same, and for a rich post it carries the post itself, while a shared link previews as flattened text. "How we calculate" stays.
+
+### Operations
+- The public channel switches to the rich post from 2026-11-28 (repository variable `POST_FORMAT=rich`, set on 2026-11-27, owner's decision); the owner runs a poll about the new format. The classic post still goes out if Telegram refuses the rich one, and deleting the variable switches back.
+
+### Fixed
+- Rich post: the APY column holds the number only, so it lines up. The ↑↓ marker now stands in front of the 7-day value ("↑ 27.1%") and "est." in its place, instead of after the APY, where they pushed the number to the left (owner's check of the test post).
+
 ## [1.8.0] - 2026-11-27
 
 ### Added

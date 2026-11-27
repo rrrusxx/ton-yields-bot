@@ -43,23 +43,28 @@ interface Seen {
 
 const R = ` align="right"`;
 
-/** The APY cell and the 7d cell of a row */
+/**
+ * The APY cell and the 7d cell of a row. The APY cell holds the number only,
+ * so the right-aligned column lines up; the markers go in front of the 7d
+ * value ("↑ 27.1%": today's APY is above it) or in its place ("est.": the
+ * pool's own estimate, which has no 7-day value).
+ */
 function apyCells(y: YieldOpportunity, averages: Map<YieldOpportunity, number>, seen: Seen): [string, string] {
   if (y.apyEstimate) {
     seen.estimate = true;
-    return [`${y.apyTotal.toFixed(1)}% est.`, ""];
+    return [`${y.apyTotal.toFixed(1)}%`, "est."];
   }
   if (y.apyNote) {
     return [`${y.apyTotal.toFixed(2)}%`, safeText(y.apyNote)];
   }
   const avg7d = shownAverage(y, averages);
-  const arrow = avg7d !== null ? getApyDirection(y.apyTotal, avg7d) : "";
+  const arrow = avg7d !== null ? getApyDirection(y.apyTotal, avg7d).trim() : "";
   if (arrow) seen.arrow = true;
-  const average = avg7d !== null ? `${avg7d.toFixed(1)}%` : "";
+  const average = avg7d !== null ? `${arrow ? `${arrow} ` : ""}${avg7d.toFixed(1)}%` : "";
   if (y.apyReward && y.apyReward > 0.1) {
-    return [`${y.apyBase.toFixed(1)}% + ${y.apyReward.toFixed(1)}%${arrow}`, average];
+    return [`${y.apyBase.toFixed(1)}% + ${y.apyReward.toFixed(1)}%`, average];
   }
-  return [`${y.apyTotal.toFixed(1)}%${arrow}`, average];
+  return [`${y.apyTotal.toFixed(1)}%`, average];
 }
 
 /** The UR cell: utilisation rate, 🔥 above 95% */
@@ -138,8 +143,8 @@ function sectionBlock(section: DigestSection, data: DigestData, seen: Seen): str
 /** The legend: only the markers the post shows, one line */
 export function richLegend(seen: Seen): string {
   const parts: string[] = [];
-  if (seen.arrow) parts.push("↑↓ APY above or below its 7-day value");
-  if (seen.estimate) parts.push("est. the pool's own estimate");
+  if (seen.arrow) parts.push("↑↓ in 7d: today's APY is above or below its 7-day value");
+  if (seen.estimate) parts.push("est. the pool's own estimate, no 7-day value");
   if (seen.ur) parts.push(`UR utilisation rate${seen.fire ? " (🔥 above 95%)" : ""}`);
   if (seen.lowTvl) parts.push("⚠️ TVL below $10K");
   if (seen.concentrated) parts.push("CL concentrated liquidity: an LP earns only while the price is in its range");

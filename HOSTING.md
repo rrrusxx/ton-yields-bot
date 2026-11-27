@@ -11,6 +11,7 @@ The bot runs on GitHub Actions. GitHub's own schedule starts runs hours late (th
 | cron-job.org job at 08:30 UTC (retry) | Not set up (owner's choice of 2026-11-25). A missed 08:00 call is then caught by the fallback, usually hours later the same day. |
 | healthchecks.io watchdog (`HC_PING_URL`) | Not set up (owner's choice of 2026-11-25); without the secret the bot sends no signals and no alert comes. |
 | GitHub's fallback schedule | Active (`daily-post-fallback.yml`). |
+| Repository variable `POST_FORMAT` | `rich` since 2026-11-27 (owner's decision): the public channel gets the rich message from the post of 2026-11-28. `gh variable delete POST_FORMAT --repo rrrusxx/ton-yields-bot` goes back to the classic post. |
 
 ## How a day goes
 

@@ -1,6 +1,6 @@
 {
   "name": "ton-yields-bot",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "tasks": {
     "dev": "deno run --unstable-kv --allow-net --allow-env --allow-read --allow-write --allow-import --watch src/main.ts",
     "start": "deno run --unstable-kv --allow-net --allow-env --allow-read --allow-write --allow-import src/main.ts",
